@@ -218,6 +218,12 @@ async function createNotificationFiltered(doc) {
 // Export so other route files / engine can use it
 global.__createNotificationFiltered = createNotificationFiltered;
 
+// Route ALL Notification.createIfAllowed callers (workflow engine, timesheet
+// routes) through createNotificationFiltered too, so they get push + email
+// alongside the in-app row. Otherwise those events would only show in the
+// bell, never as a real notification.
+Notification.createIfAllowed = (doc) => createNotificationFiltered(doc);
+
 // ==================== AUTH ROUTES ====================
 app.post('/api/auth/signup', async (req, res) => {
   try {
@@ -675,6 +681,23 @@ app.post('/api/tasks', requireTeamspaceMembership, async (req, res) => {
     const task = new Task({ ...req.body, teamspaceId: req.body.teamspaceId || req.teamspaceId });
     await task.save();
     workflowEngine.fire('task_created', task.toObject());
+
+    // Notify the assignee (if it's not the creator). Also notify all admins
+    // so they can keep tabs on new work entering the system.
+    const creatorName = req.body.createdBy || req.body.updatedBy || (req.user ? (await User.findById(req.user.userId).select('name').lean())?.name : null);
+    const recipients = new Set();
+    if (task.assignee && task.assignee !== creatorName) recipients.add(task.assignee);
+    for (const name of recipients) {
+      createNotification({
+        type: 'task_created',
+        title: 'New task created',
+        message: `"${task.title}" was created${creatorName ? ' by ' + creatorName : ''} and assigned to you.`,
+        taskId: task.id,
+        taskTitle: task.title,
+        userId: name,
+        actorName: creatorName || 'Someone',
+      });
+    }
     res.status(201).json(task);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -748,6 +771,22 @@ app.put('/api/tasks/:id', requireTeamspaceMembership, async (req, res) => {
         }
 
         workflowEngine.fire('status_changed', task.toObject(), ctx);
+
+        // Generic status-change notification — fires for moves that aren't
+        // already covered above (e.g., In Progress → Blocked, To Do → In Progress).
+        const handledByAbove = ['In Review', 'Rejected'].includes(req.body.status) ||
+                               (req.body.status === 'Completed' && oldTask.status === 'In Review');
+        if (!handledByAbove && task.assignee && task.assignee !== req.body.updatedBy) {
+          createNotification({
+            type: 'status_changed',
+            title: `Status: ${oldTask.status} → ${req.body.status}`,
+            message: `"${task.title}" moved to ${req.body.status}${req.body.updatedBy ? ' by ' + req.body.updatedBy : ''}.`,
+            taskId: task.id,
+            taskTitle: task.title,
+            userId: task.assignee,
+            actorName: req.body.updatedBy || 'Someone',
+          });
+        }
       }
 
       // Assignee changed → notify the new assignee
@@ -778,7 +817,26 @@ app.put('/api/tasks/:id', requireTeamspaceMembership, async (req, res) => {
 
 app.delete('/api/tasks/:id', requireTeamspaceMembership, async (req, res) => {
   try {
+    const doomed = await Task.findOne({ id: req.params.id });
     await Task.findOneAndDelete({ id: req.params.id });
+
+    if (doomed) {
+      const actor = req.query.actor || req.body?.deletedBy || (req.user ? (await User.findById(req.user.userId).select('name').lean())?.name : 'Someone');
+      const recipients = new Set();
+      if (doomed.assignee && doomed.assignee !== actor) recipients.add(doomed.assignee);
+      if (doomed.createdBy && doomed.createdBy !== actor && doomed.createdBy !== doomed.assignee) recipients.add(doomed.createdBy);
+      for (const name of recipients) {
+        createNotification({
+          type: 'task_deleted',
+          title: 'Task deleted',
+          message: `"${doomed.title}" was deleted by ${actor || 'someone'}.`,
+          taskId: doomed.id,
+          taskTitle: doomed.title,
+          userId: name,
+          actorName: actor || 'Someone',
+        });
+      }
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
