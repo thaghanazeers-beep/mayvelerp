@@ -21,6 +21,7 @@ export default function ProfilePage() {
 
   // Extra-fields edit state — keep in one form blob so we can save in a single PUT.
   const [extra, setExtra] = useState({
+    email:        user?.email || '',
     phone:        user?.phone || '',
     slackHandle:  user?.slackHandle || '',
     timezone:     user?.timezone || 'Asia/Kolkata',
@@ -38,6 +39,11 @@ export default function ProfilePage() {
   const setWorkingHours = (k, v) => setExtra(prev => ({ ...prev, workingHours: { ...prev.workingHours, [k]: v } }));
 
   const saveExtras = async () => {
+    // Light email validation — server-side check enforces uniqueness.
+    if (extra.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extra.email)) {
+      alert('That email looks invalid. Use the format name@domain.com.');
+      return;
+    }
     setSavingExtra(true);
     try {
       const r = await updateUser(user._id, extra);
@@ -123,7 +129,17 @@ export default function ProfilePage() {
           </div>
           <div className="profile-field">
             <label className="label">Email Address</label>
-            <div className="profile-value">{user?.email}</div>
+            <input
+              className="input"
+              type="email"
+              value={extra.email}
+              onChange={e => setExtraField('email', e.target.value)}
+              placeholder="name@domain.com"
+              autoComplete="email"
+            />
+            <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
+              Workflow / notification emails are sent here. Click "Save profile" below to apply.
+            </div>
           </div>
           <div className="profile-field">
             <label className="label">Role</label>

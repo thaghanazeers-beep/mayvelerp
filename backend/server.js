@@ -552,9 +552,17 @@ app.post('/api/users/:id/avatar', upload.single('avatar'), async (req, res) => {
 // Update user profile
 app.put('/api/users/:id', async (req, res) => {
   try {
+    if (req.body?.email) {
+      const lower = String(req.body.email).trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lower)) return res.status(400).json({ error: 'Invalid email format' });
+      const clash = await User.findOne({ email: lower, _id: { $ne: req.params.id } }).select('_id').lean();
+      if (clash) return res.status(409).json({ error: 'That email is already used by another account.' });
+      req.body.email = lower;
+    }
     const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(user);
   } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ error: 'That email is already used by another account.' });
     res.status(500).json({ error: err.message });
   }
 });
