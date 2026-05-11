@@ -1,0 +1,124 @@
+/* ══════════════════════════════════════════════════════
+   TEAM PAGE — Member cards & invite flow
+   ══════════════════════════════════════════════════════ */
+.team-page { display: flex; flex-direction: column; gap: 20px; }
+.team-toolbar { display: flex; align-items: center; justify-content: space-between; }
+
+/* ════════════════ TEAM GRID ════════════════ */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.team-card {
+  padding: 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+.team-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.team-card-top {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.team-avatar {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.team-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Card action buttons */
+.team-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.team-card:hover .team-card-actions { opacity: 1; }
+
+.team-edit { color: var(--primary-light); }
+.team-edit:hover { background: var(--bg-selected) !important; }
+.team-remove { color: var(--accent-red); }
+.team-remove:hover { background: rgba(248,81,73,0.08) !important; }
+
+.team-name { font-size: 0.875rem; font-weight: 600; }
+.team-email { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; }
+
+/* ════════════════ EDIT MEMBER MODAL ════════════════ */
+.modal-wide { max-width: 580px !important; }
+
+.edit-member-body { display: flex; flex-direction: column; gap: 0; }
+
+.edit-avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.edit-avatar-preview {
+  width: 56px; height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  border: 2px solid var(--border-default);
+}
+.edit-avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+.edit-avatar-actions { display: flex; flex-direction: column; gap: 2px; }
+.edit-avatar-name { font-size: 0.9375rem; font-weight: 600; margin: 0; }
+.edit-avatar-email { font-size: 0.75rem; color: var(--text-muted); margin: 0 0 4px; }
+
+.edit-member-form { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.edit-form-row { display: flex; gap: 12px; }
+.edit-form-row .form-field { flex: 1; }
+
+/* ════════════════ INVITE RESULT ════════════════ */
+.invite-result { padding: 12px 14px; border-radius: var(--radius-sm); font-size: 0.8125rem; }
+.invite-success { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.2); color: var(--accent-green); }
+.invite-error { background: rgba(248,81,73,0.08); border: 1px solid rgba(248,81,73,0.2); color: var(--accent-red); }
+
+.invite-credentials { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(63,185,80,0.1); }
+.invite-credentials p { color: var(--text-secondary); font-size: 0.75rem; }
+.invite-password {
+  display: block; margin: 4px 0; padding: 6px 10px;
+  background: var(--bg-input); border-radius: var(--radius-xs);
+  font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8125rem;
+  color: var(--text); user-select: all; cursor: copy;
+}
+.invite-hint { font-size: 0.6875rem !important; color: var(--text-muted) !important; margin-top: 4px; }
+
+@media (max-width: 600px) {
+  .team-grid { grid-template-columns: 1fr; }
+  .edit-form-row { flex-direction: column; }
+  .edit-avatar-section { flex-direction: column; text-align: center; align-items: center; }
+}

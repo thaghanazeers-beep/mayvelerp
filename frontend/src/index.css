@@ -1,0 +1,342 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ══════════════════════════════════════════════════════
+   MAYVEL — Design System v3 (Linear / iOS Inspired)
+   ══════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Core Surfaces ── */
+  --bg-app: #0d1117;
+  --bg-surface: #161b22;
+  --bg-elevated: #1c2128;
+  --bg-card: rgba(22, 27, 34, 0.85);
+  --bg-hover: rgba(48, 54, 61, 0.6);
+  --bg-input: rgba(13, 17, 23, 0.6);
+  --bg-selected: rgba(56, 139, 253, 0.08);
+
+  /* ── Brand Colors ── */
+  --primary: #6e56cf;
+  --primary-light: #9b8afb;
+  --primary-dark: #5b45b0;
+  --primary-glow: rgba(110, 86, 207, 0.35);
+
+  /* ── Semantic Colors ── */
+  --accent-green: #3fb950;
+  --accent-orange: #d29922;
+  --accent-red: #f85149;
+  --accent-blue: #58a6ff;
+  --accent-purple: #bc8cff;
+  --accent-cyan: #39d2c0;
+
+  /* ── Typography ── */
+  --text: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --text-link: var(--accent-blue);
+
+  /* ── Borders ── */
+  --border: rgba(240, 246, 252, 0.06);
+  --border-default: rgba(240, 246, 252, 0.1);
+  --border-strong: rgba(240, 246, 252, 0.16);
+
+  /* ── Geometry ── */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* ── Depth ── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 24px var(--primary-glow);
+
+  /* ── Motion ── */
+  --transition-fast: 0.15s ease;
+  --transition: 0.2s ease;
+  --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Backward Compat Aliases ── */
+  --border-light: var(--border-strong);
+  --accent-pink: #bc8cff;
+  --primary-glow: var(--primary-glow);
+}
+
+/* ── Light Theme ── */
+[data-theme="light"] {
+  --bg-app: #f6f8fa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-hover: rgba(208, 215, 222, 0.3);
+  --bg-input: #f6f8fa;
+  --bg-selected: rgba(110, 86, 207, 0.06);
+
+  --primary: #6e56cf;
+  --primary-light: #8b72e8;
+  --primary-dark: #5b45b0;
+  --primary-glow: rgba(110, 86, 207, 0.2);
+
+  --accent-green: #1a7f37;
+  --accent-orange: #bf8700;
+  --accent-red: #cf222e;
+  --accent-blue: #0969da;
+
+  --text: #1f2328;
+  --text-secondary: #656d76;
+  --text-muted: #8b949e;
+
+  --border: rgba(31, 35, 40, 0.06);
+  --border-default: rgba(31, 35, 40, 0.12);
+  --border-strong: rgba(31, 35, 40, 0.18);
+
+  --shadow-xs: 0 1px 2px rgba(31,35,40,0.04);
+  --shadow-sm: 0 1px 4px rgba(31,35,40,0.06);
+  --shadow-md: 0 4px 12px rgba(31,35,40,0.08);
+  --shadow-lg: 0 8px 24px rgba(31,35,40,0.1);
+  --shadow-xl: 0 16px 48px rgba(31,35,40,0.12);
+}
+
+/* ══════════════════════════════════════════════════════
+   RESET & BASE
+   ══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%; width: 100%; margin: 0; padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-app);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* ══════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ══════════════════════════════════════════════════════ */
+h1, h2, h3, h4, h5, h6 { margin: 0 0 0.5rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; }
+h1 { font-size: 1.75rem; font-weight: 700; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.1rem; }
+
+/* ══════════════════════════════════════════════════════
+   SCROLLBAR
+   ══════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 100px; opacity: 0.4; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+/* ══════════════════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 16px; border: 1px solid transparent; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 0.8125rem; font-weight: 500; cursor: pointer;
+  transition: all var(--transition); white-space: nowrap; line-height: 1.4;
+  text-decoration: none;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+.btn-primary {
+  background: var(--primary); color: #fff; border-color: var(--primary-dark);
+}
+.btn-primary:hover { background: var(--primary-light); }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-ghost {
+  background: transparent; color: var(--text-secondary); border-color: var(--border-default);
+}
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border-strong); }
+
+.btn-danger {
+  background: transparent; color: var(--accent-red); border-color: rgba(248,81,73,0.3);
+}
+.btn-danger:hover { background: rgba(248,81,73,0.1); }
+
+.btn-sm { padding: 5px 12px; font-size: 0.75rem; }
+
+.btn-icon {
+  width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm); background: transparent; border: 1px solid var(--border-default);
+  color: var(--text-secondary); cursor: pointer; transition: all var(--transition);
+}
+.btn-icon:hover { background: var(--bg-hover); color: var(--text); }
+
+/* ══════════════════════════════════════════════════════
+   FORM INPUTS
+   ══════════════════════════════════════════════════════ */
+.input, .form-control, select.input {
+  width: 100%; padding: 9px 12px; background: var(--bg-input);
+  border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text);
+  font-family: inherit; font-size: 0.875rem; transition: all var(--transition); outline: none;
+  line-height: 1.5;
+}
+.input:focus, .form-control:focus {
+  border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow);
+  background: var(--bg-elevated);
+}
+.input::placeholder, .form-control::placeholder { color: var(--text-muted); }
+
+textarea.input { resize: vertical; min-height: 72px; }
+
+.label, .form-label {
+  display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;
+}
+
+.form-field { display: flex; flex-direction: column; }
+
+/* ══════════════════════════════════════════════════════
+   BADGES
+   ══════════════════════════════════════════════════════ */
+.badge {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full);
+  font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.02em;
+  text-transform: capitalize; border: 1px solid transparent;
+}
+
+.badge-todo, .badge-notstarted { background: rgba(139,148,158,0.12); color: var(--text-muted); border-color: rgba(139,148,158,0.2); }
+.badge-progress { background: rgba(88,166,255,0.12); color: var(--accent-blue); border-color: rgba(88,166,255,0.2); }
+.badge-review { background: rgba(210,153,34,0.12); color: var(--accent-orange); border-color: rgba(210,153,34,0.2); }
+.badge-done { background: rgba(63,185,80,0.12); color: var(--accent-green); border-color: rgba(63,185,80,0.2); }
+.badge-rejected { background: rgba(248,81,73,0.12); color: var(--accent-red); border-color: rgba(248,81,73,0.2); }
+.badge-admin { background: rgba(110,86,207,0.12); color: var(--primary-light); border-color: rgba(110,86,207,0.2); }
+.badge-member { background: rgba(139,148,158,0.12); color: var(--text-secondary); border-color: rgba(139,148,158,0.2); }
+.badge-sm { padding: 1px 6px; font-size: 0.625rem; }
+.badge-owner { background: rgba(210,153,34,0.12); color: var(--accent-orange); border-color: rgba(210,153,34,0.2); }
+
+/* Status dots */
+.dot-notstarted { background: var(--text-muted) !important; }
+.dot-progress { background: var(--accent-blue) !important; }
+.dot-review { background: var(--accent-orange) !important; }
+.dot-done { background: var(--accent-green) !important; }
+.dot-rejected { background: var(--accent-red) !important; }
+
+/* Project & Task Utilities */
+.project-active-icon { width: 28px; height: 28px; border-radius: var(--radius-xs); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: #fff; }
+.project-card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.project-task-count { font-size: 0.75rem; font-weight: 600; color: var(--primary-light); }
+.task-card-hours, .list-item-hours { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+.table-hours { font-size: 0.8125rem; text-align: center; }
+
+/* ══════════════════════════════════════════════════════
+   MODALS
+   ══════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+}
+
+.modal {
+  /* Override Bootstrap's `.modal { display: none; position: fixed; top: 0;
+     width: 100%; height: 100%; ... }` which would otherwise hide our centered
+     modal cards AND stretch them to the full viewport height. */
+  display: block;
+  position: relative;
+  top: auto;
+  left: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: 100%; max-width: 480px;
+  height: auto;                       /* shrink-wrap to content (overrides Bootstrap's 100%) */
+  max-height: 90vh; overflow-y: auto;
+  outline: none;
+}
+
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--text); }
+
+.modal-form { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal-row { display: flex; gap: 12px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); }
+
+/* ══════════════════════════════════════════════════════
+   BOOTSTRAP OVERRIDES — make Bootstrap defaults theme-aware
+   ══════════════════════════════════════════════════════ */
+/* Bare `.card` (used in TeamspaceControlPage and modals) */
+.card {
+  background: var(--bg-surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* `.table` (used in TasksPage / ProjectsPage table view).
+   Bootstrap exposes its colors via --bs-table-* CSS vars; remap them to ours
+   so striped/hover/borders all inherit the active theme. */
+.table {
+  --bs-table-color: var(--text);
+  --bs-table-bg: transparent;
+  --bs-table-border-color: var(--border);
+  --bs-table-striped-color: var(--text);
+  --bs-table-striped-bg: var(--bg-hover);
+  --bs-table-hover-color: var(--text);
+  --bs-table-hover-bg: var(--bg-hover);
+  --bs-table-active-color: var(--text);
+  --bs-table-active-bg: var(--bg-selected);
+  color: var(--text);
+  background-color: transparent;
+}
+.table > :not(caption) > * > * {
+  background-color: transparent;
+  color: var(--text);
+  border-bottom-color: var(--border);
+}
+.table-hover > tbody > tr:hover > * { background-color: var(--bg-hover); color: var(--text); }
+
+/* Bootstrap utility colors → theme-aware */
+.text-muted { color: var(--text-muted) !important; }
+.text-white { color: var(--text) !important; }
+.bg-dark   { background-color: var(--bg-elevated) !important; }
+.border-secondary { border-color: var(--border-default) !important; }
+
+/* Bootstrap form-control inside our cards */
+.form-control {
+  background-color: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border-default);
+}
+.form-control:focus {
+  background-color: var(--bg-elevated);
+  color: var(--text);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* ══════════════════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════════════════ */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+.animate-in { animation: fadeIn 0.2s ease both; }
+.animate-slide { animation: slideIn 0.2s ease both; }
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

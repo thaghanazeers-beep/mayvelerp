@@ -1,0 +1,135 @@
+/* ══════════════════════════════════════════════════════
+   VIEW TABS — Inline view switcher
+   ══════════════════════════════════════════════════════ */
+.view-tabs-container {
+  display: flex;
+  align-items: center;
+}
+
+.view-tabs-list {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.view-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.view-tab:hover {
+  color: var(--text);
+}
+.view-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+.view-tab-icon {
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+.view-tab.active .view-tab-icon {
+  opacity: 1;
+}
+
+/* ── Add View Button ── */
+.view-add-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.view-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 4px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.view-add-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+/* ── Popover ── */
+.view-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  width: 240px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+}
+
+.view-popover-header {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 6px 8px 8px;
+}
+
+.view-popover-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.view-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  transition: background 0.15s ease;
+}
+.view-popover-item:hover {
+  background: var(--bg-hover);
+}
+
+.view-popover-icon {
+  font-size: 0.9375rem;
+  width: 20px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.view-popover-label {
+  font-weight: 500;
+}
