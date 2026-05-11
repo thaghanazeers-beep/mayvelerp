@@ -1,4 +1,8 @@
 require('dotenv').config();
+// Force IPv4 for outbound DNS lookups. Render's free-tier containers have
+// IPv6 disabled, so smtp.gmail.com (which resolves to both v4 + v6) fails
+// with ENETUNREACH on the v6 attempt. Setting ipv4first avoids that hop.
+require('dns').setDefaultResultOrder('ipv4first');
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
