@@ -136,7 +136,39 @@ async function initTransporter() {
 
 // ==================== HELPER: Create Notification ====================
 // Honor per-user notification preferences. The `userId` field stores the user's
-// NAME (legacy choice) — we look the user up by name to read prefs.
+// NAME (legacy choice) — we look the user up by name to read prefs + email.
+function emailHtmlFor(title, message, taskId) {
+  const safe = (s) => String(s || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const taskHref = taskId ? `${APP_URL}/tasks/${encodeURIComponent(taskId)}` : APP_URL;
+  return `
+    <div style="font-family: 'Inter', system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+      <h2 style="color: #6c5ce7; margin-top: 0;">${safe(title)}</h2>
+      <p style="font-size: 15px; line-height: 1.5; color: #333;">${safe(message)}</p>
+      <p style="margin: 24px 0;">
+        <a href="${taskHref}" style="display: inline-block; background: #6c5ce7; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">${taskId ? 'Open task' : 'Open Mayvel Task'}</a>
+      </p>
+      <p style="font-size: 12px; color: #999; margin-top: 24px;">You're receiving this because you're a member of a Mayvel Task workspace. You can mute this type from your notification settings.</p>
+    </div>
+  `;
+}
+
+// Fire-and-forget email send for a notification. Looks up the user's email
+// from the User collection. No-op if SMTP isn't configured or user has no
+// email on record. Errors are logged but never thrown.
+function sendNotificationEmail(userName, type, title, message, taskId) {
+  if (!transporter || !userName) return;
+  User.findOne({ name: userName }).select('email notificationPrefs').lean().then(target => {
+    if (!target?.email) return;
+    if (target.notificationPrefs && target.notificationPrefs[type] === false) return;
+    return transporter.sendMail({
+      from: `"Mayvel Task" <${process.env.SMTP_USER || 'no-reply@mayvel.local'}>`,
+      to: target.email,
+      subject: title || 'Mayvel Task',
+      html: emailHtmlFor(title, message, taskId),
+    });
+  }).catch(err => console.error('[email] notif send failed:', err.message));
+}
+
 async function createNotification({ type, title, message, taskId, taskTitle, userId, actorName }) {
   try {
     if (userId) {
@@ -153,6 +185,7 @@ async function createNotification({ type, title, message, taskId, taskTitle, use
         url: taskId ? `/tasks/${taskId}` : '/notifications',
         notifId: String(notif._id),
       }).catch(e => console.error('[push] fire-and-forget failed:', e.message));
+      sendNotificationEmail(userId, type, title, message, taskId);
     }
     return notif;
   } catch (err) {
@@ -175,6 +208,7 @@ async function createNotificationFiltered(doc) {
         url: doc.taskId ? `/tasks/${doc.taskId}` : '/notifications',
         notifId: String(notif._id),
       }).catch(e => console.error('[push] fire-and-forget failed:', e.message));
+      sendNotificationEmail(doc.userId, doc.type, doc.title, doc.message, doc.taskId);
     }
     return notif;
   } catch (err) {
