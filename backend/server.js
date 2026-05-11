@@ -113,13 +113,30 @@ let usingEthereal = false;
 
 async function initTransporter() {
   if (process.env.SMTP_USER) {
+    const hostName = process.env.SMTP_HOST || 'smtp.gmail.com';
+    // Pre-resolve to an IPv4 address. Render's free-tier containers cannot
+    // reach IPv6 destinations, so connecting to the v6 address Node otherwise
+    // picks via happy-eyeballs fails with ENETUNREACH. We connect to the IPv4
+    // IP directly and keep `servername` so the TLS cert still validates against
+    // the original hostname.
+    let connectHost = hostName;
+    try {
+      const ips = await require('dns').promises.resolve4(hostName);
+      if (ips.length) connectHost = ips[0];
+    } catch (e) {
+      console.warn('[email] DNS resolve4 failed, falling back to hostname:', e.message);
+    }
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      host: connectHost,
       port: parseInt(process.env.SMTP_PORT || '587', 10),
       secure: false,
+      family: 4,
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || '' },
+      tls: { servername: hostName },
+      connectionTimeout: 15000,
+      socketTimeout: 15000,
     });
-    console.log(`Email: using SMTP host ${process.env.SMTP_HOST || 'smtp.gmail.com'} as ${process.env.SMTP_USER}`);
+    console.log(`Email: using SMTP host ${hostName} (resolved to ${connectHost}) as ${process.env.SMTP_USER}`);
     return;
   }
   try {
