@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { isPushSupported, getCurrentSubscription, subscribePush, unsubscribePush, sendTestPush } from '../utils/push';
 import './NotificationBell.css';
 
 const NOTIF_ICONS = {
@@ -22,8 +23,30 @@ export default function NotificationBell({ onToast }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
   const prevCountRef = useRef(0);
   const dropdownRef = useRef(null);
+
+  // Reflect the browser's actual push subscription state in the toggle.
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    getCurrentSubscription().then(s => setPushOn(!!s)).catch(() => {});
+  }, []);
+
+  const togglePush = async () => {
+    setPushBusy(true);
+    try {
+      if (pushOn) { await unsubscribePush(); setPushOn(false); }
+      else        { await subscribePush();   setPushOn(true);  }
+    } catch (e) {
+      alert(e.message || 'Could not change push setting');
+    } finally { setPushBusy(false); }
+  };
+
+  const handleTestPush = async () => {
+    try { await sendTestPush(); } catch (e) { alert(e.message); }
+  };
 
   useEffect(() => {
     fetchData();
@@ -109,6 +132,21 @@ export default function NotificationBell({ onToast }) {
               <button className="notif-mark-all" onClick={handleMarkAllRead}>Mark all read</button>
             )}
           </div>
+          {isPushSupported() && (
+            <div className="notif-push-row">
+              <button
+                className="notif-mark-all"
+                onClick={togglePush}
+                disabled={pushBusy}
+                title={pushOn ? 'Stop receiving push notifications in this browser' : 'Allow desktop / OS push notifications'}
+              >
+                {pushBusy ? '…' : pushOn ? '🔕 Disable push' : '🔔 Enable push'}
+              </button>
+              {pushOn && (
+                <button className="notif-mark-all" onClick={handleTestPush}>Send test</button>
+              )}
+            </div>
+          )}
           <div className="notif-list">
             {notifications.length === 0 ? (
               <div className="notif-empty">

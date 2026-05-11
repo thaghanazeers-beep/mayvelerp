@@ -39,6 +39,8 @@ const Teamspace = require('./models/Teamspace');
 const Page = require('./models/Page');
 const { Workflow, WorkflowLog } = require('./models/Workflow');
 const Notification = require('./models/Notification');
+const PushSubscription = require('./models/PushSubscription');
+const { sendPushToUser } = require('./lib/push');
 const workflowEngine = require('./workflowEngine');
 
 const app = express();
@@ -144,6 +146,14 @@ async function createNotification({ type, title, message, taskId, taskTitle, use
     }
     const notif = new Notification({ type, title, message, taskId, taskTitle, userId, actorName });
     await notif.save();
+    if (userId) {
+      sendPushToUser(userId, {
+        title: title || 'Mayvel Task',
+        body: message || '',
+        url: taskId ? `/tasks/${taskId}` : '/notifications',
+        notifId: String(notif._id),
+      }).catch(e => console.error('[push] fire-and-forget failed:', e.message));
+    }
     return notif;
   } catch (err) {
     console.error('Failed to create notification:', err.message);
@@ -157,7 +167,16 @@ async function createNotificationFiltered(doc) {
       const target = await User.findOne({ name: doc.userId }).select('notificationPrefs').lean();
       if (target?.notificationPrefs && target.notificationPrefs[doc.type] === false) return null;
     }
-    return Notification.create(doc);
+    const notif = await Notification.create(doc);
+    if (doc.userId) {
+      sendPushToUser(doc.userId, {
+        title: doc.title || 'Mayvel Task',
+        body: doc.message || '',
+        url: doc.taskId ? `/tasks/${doc.taskId}` : '/notifications',
+        notifId: String(notif._id),
+      }).catch(e => console.error('[push] fire-and-forget failed:', e.message));
+    }
+    return notif;
   } catch (err) {
     console.error('createNotificationFiltered failed:', err.message);
   }
@@ -806,6 +825,56 @@ app.delete('/api/tasks/:id/comments/:commentId', requireTeamspaceMembership, asy
     if (!isAuthor && !isAdmin) return res.status(403).json({ error: 'Only the author or an admin can delete this comment' });
     await c.deleteOne();
     res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== WEB PUSH ROUTES ====================
+// Public VAPID key — frontend uses this to subscribe.
+app.get('/api/push/vapid-public-key', (req, res) => {
+  if (!process.env.VAPID_PUBLIC_KEY) return res.status(503).json({ error: 'Push not configured' });
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+});
+
+// Save (or upsert) a browser subscription for the authenticated user.
+// Body: { endpoint, keys: { p256dh, auth } }
+app.post('/api/push/subscribe', authenticate, async (req, res) => {
+  try {
+    const { endpoint, keys } = req.body || {};
+    if (!endpoint || !keys?.p256dh || !keys?.auth) return res.status(400).json({ error: 'Bad subscription payload' });
+    const user = await User.findById(req.user.userId).select('name').lean();
+    if (!user) return res.status(401).json({ error: 'No such user' });
+    await PushSubscription.findOneAndUpdate(
+      { endpoint },
+      { userId: user.name, endpoint, keys, userAgent: req.headers['user-agent'] || '' },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Remove a subscription (called when user clicks "Disable push" or unsubscribes
+// at the browser level).
+app.post('/api/push/unsubscribe', authenticate, async (req, res) => {
+  try {
+    const { endpoint } = req.body || {};
+    if (!endpoint) return res.status(400).json({ error: 'Missing endpoint' });
+    await PushSubscription.deleteOne({ endpoint });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Send a test push to the authenticated user — useful for the "test
+// notification" button in the UI.
+app.post('/api/push/test', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('name').lean();
+    if (!user) return res.status(401).json({ error: 'No such user' });
+    const result = await sendPushToUser(user.name, {
+      title: 'Mayvel Task',
+      body: 'Push notifications are working 🎉',
+      url: '/notifications',
+    });
+    res.json(result);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

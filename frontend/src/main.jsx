@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css'
 import App from './App.jsx'
+import { registerServiceWorker, isPushSupported } from './utils/push'
+
+if (isPushSupported()) registerServiceWorker().catch(() => {});
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
