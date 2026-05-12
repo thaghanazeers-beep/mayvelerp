@@ -222,9 +222,15 @@ function sendNotificationEmail(userName, type, title, message, taskId) {
   User.findOne({ name: userName }).select('email notificationPrefs emailNotificationsEnabled').lean().then(target => {
     if (!target?.email) return;
     // Master kill switch — respect user's "Email notifications: off" setting.
-    if (target.emailNotificationsEnabled === false) return;
+    if (target.emailNotificationsEnabled === false) {
+      console.log(`[email] skipped for ${target.email} — emailNotificationsEnabled=false (${type})`);
+      return;
+    }
     // Per-type mute.
-    if (target.notificationPrefs && target.notificationPrefs[type] === false) return;
+    if (target.notificationPrefs && target.notificationPrefs[type] === false) {
+      console.log(`[email] skipped for ${target.email} — type "${type}" muted in prefs`);
+      return;
+    }
     return transporter.sendMail({
       from: `"Mayvel Task" <${process.env.SMTP_USER || 'no-reply@mayvel.local'}>`,
       to: target.email,
@@ -1987,11 +1993,12 @@ async function weeklyDigestTick() {
     monday.setDate(monday.getDate() + (dow === 0 ? -6 : 1 - dow));
     const friday = new Date(monday); friday.setDate(monday.getDate() + 4); friday.setHours(23,59,59,999);
 
-    const users = await User.find({}).select('name email notificationPrefs').lean();
+    const users = await User.find({}).select('name email notificationPrefs emailNotificationsEnabled').lean();
     let sent = 0;
     for (const u of users) {
       if (!u.email || u.email === 'unknown@example.com') continue;
-      if (u.notificationPrefs?.weekly_digest === false) continue;
+      if (u.emailNotificationsEnabled === false) continue;       // master kill switch
+      if (u.notificationPrefs?.weekly_digest === false) continue; // per-type mute
       // De-dupe: skip if we already sent a digest in the last 20 hours
       const recent = await Notification.findOne({
         type: 'weekly_digest_sent', userId: u.name,
