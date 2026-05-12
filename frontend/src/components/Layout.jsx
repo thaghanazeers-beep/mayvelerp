@@ -273,7 +273,8 @@ export default function Layout({ children, onToast }) {
 
                 {isOpen && (
                   <div className="ts-tree-children">
-                    {tsChildItems.map(item => (
+                    {/* Personal workspace: show ONLY Tasks (no projects / sprints / team / etc.) */}
+                    {(ts.isPersonal ? tsChildItems.filter(it => it.id === 'tasks') : tsChildItems).map(item => (
                       <button
                         key={item.id}
                         className={`sidebar-link sidebar-link-child ${isTsChildActive(ts._id, item.id) ? 'active' : ''}`}

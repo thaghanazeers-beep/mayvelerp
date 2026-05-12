@@ -44,6 +44,7 @@ export default function ProjectsPage() {
   const [color, setColor] = useState('#6c5ce7');
   const [billingType, setBillingType] = useState('tm');         // 'tm' or 'fixed'
   const [contractValue, setContractValue] = useState('');       // INR (rupees, not paise)
+  const [scope, setScope] = useState('teamspace');              // 'teamspace' or 'org' — org makes the project visible to every team
 
   const openCreateModal = () => {
     setEditingProjectId(null);
@@ -59,6 +60,7 @@ export default function ProjectsPage() {
     setColor(p.color || '#6c5ce7');
     setBillingType(p.billingType || 'tm');
     setContractValue(p.contractValueCents ? String(Math.round(p.contractValueCents / 100)) : '');
+    setScope(p.scope || 'teamspace');
     setShowCreate(true);
   };
 
@@ -138,7 +140,7 @@ export default function ProjectsPage() {
     if (!name.trim()) return;
     try {
       const contractValueCents = Math.max(0, Math.round(Number(contractValue || 0) * 100));
-      const payload = { name, description, icon, color, billingType, contractValueCents };
+      const payload = { name, description, icon, color, billingType, contractValueCents, scope };
       if (editingProjectId) {
         await updateProject(editingProjectId, payload);
       } else {
@@ -147,7 +149,7 @@ export default function ProjectsPage() {
       setShowCreate(false);
       setEditingProjectId(null);
       setName(''); setDescription(''); setIcon('📁'); setColor('#6c5ce7');
-      setBillingType('tm'); setContractValue('');
+      setBillingType('tm'); setContractValue(''); setScope('teamspace');
       fetchAll();
     } catch (err) { console.error(err); }
   };
@@ -602,6 +604,15 @@ export default function ProjectsPage() {
                   placeholder="e.g. 500000" />
                 <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
                   Client-approved budget. Plans whose committed cost crosses this trigger an overrun warning.
+                </div>
+              </div>
+              <div className="form-field">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={scope === 'org'} onChange={(e) => setScope(e.target.checked ? 'org' : 'teamspace')} />
+                  <span className="label" style={{ margin: 0 }}>Org-wide project</span>
+                </label>
+                <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
+                  Check this for projects (like "Seyo") where multiple departments contribute — Design, Dev, and Testing each get their own tasks + budget approval within the same project. Leave unchecked for projects owned by a single team.
                 </div>
               </div>
               <div className="modal-actions">

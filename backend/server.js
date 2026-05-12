@@ -347,12 +347,35 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user || !(await verifyPassword(user, password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    // Lazily ensure the user has a personal workspace. Created on first login
+    // after this feature ships; idempotent thereafter.
+    try { await ensurePersonalTeamspace(user); } catch (e) { console.warn('[personal-ws] ensure failed:', e.message); }
     const token = generateToken(user);
     res.json({ user, token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Idempotently ensure a personal teamspace + admin membership exists for `user`.
+async function ensurePersonalTeamspace(user) {
+  const existing = await Teamspace.findOne({ isPersonal: true, ownerId: user._id }).lean();
+  if (existing) return existing;
+  const ts = await Teamspace.create({
+    name: `${user.name}'s space`,
+    description: 'Private workspace — only you can see tasks here.',
+    icon: '🔒',
+    ownerId: user._id,
+    isPersonal: true,
+  });
+  await TeamspaceMembership.create({
+    userId: user._id,
+    teamspaceId: ts._id,
+    role: 'admin',
+    status: 'active',
+  });
+  return ts;
+}
 
 // ==================== PASSWORD RESET ====================
 const APP_URL = process.env.APP_URL || 'http://localhost:5173';
@@ -454,7 +477,10 @@ app.use('/api/chat', require('./routes/chat'));
 app.get('/api/teamspaces', async (req, res) => {
   try {
     const memberships = await TeamspaceMembership.find({ userId: req.user.userId, status: 'active' }).populate('teamspaceId');
-    const teamspaces = memberships.map(m => m.teamspaceId).filter(Boolean);
+    let teamspaces = memberships.map(m => m.teamspaceId).filter(Boolean);
+    // Hide other people's personal workspaces from the picker. A personal
+    // teamspace must only be visible to its owner.
+    teamspaces = teamspaces.filter(ts => !ts.isPersonal || String(ts.ownerId) === String(req.user.userId));
     res.json(teamspaces);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -689,9 +715,11 @@ app.get('/api/projects', async (req, res) => {
   try {
     const { teamspaceId } = req.query;
     if (!teamspaceId || teamspaceId === 'undefined') return res.json([]);
-    const filter = { teamspaceId };
+    // Show: (a) projects scoped to this teamspace, OR (b) any project marked
+    // `scope: 'org'` — those are visible across every teamspace so multiple
+    // departments can contribute tasks + budgets to the same project.
+    const filter = { $or: [ { teamspaceId }, { scope: 'org' } ] };
     const projects = await Project.find(filter).sort({ createdDate: -1 });
-    // Attach task counts
     const projectsWithCounts = await Promise.all(projects.map(async (p) => {
       const taskCount = await Task.countDocuments({ projectId: p._id.toString() });
       return { ...p.toObject(), taskCount };
