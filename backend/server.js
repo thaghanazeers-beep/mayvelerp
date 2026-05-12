@@ -1701,6 +1701,12 @@ app.get('/api/orgchart', async (req, res) => {
 // PUT (upsert) org chart
 app.put('/api/orgchart', async (req, res) => {
   try {
+    // Only Super Admin can save the org chart. Everyone else gets it
+    // read-only (the frontend hides edit controls but we double-check here so
+    // it can't be bypassed via curl / DevTools).
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ error: 'Only the Super Admin can edit the org chart.' });
+
     const { nodes, edges, teamspaceId, updatedBy } = req.body;
     const filter = { teamspaceId: teamspaceId || null };
     const chart = await OrgChart.findOneAndUpdate(

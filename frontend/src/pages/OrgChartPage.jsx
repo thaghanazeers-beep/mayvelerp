@@ -42,7 +42,11 @@ const genId = () => `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)
 export default function OrgChartPage() {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
-  const { user } = useAuth();
+  const { user, isSuperAdminActive } = useAuth();
+  // Only the Super Admin (in elevated mode) can edit the org chart. Everyone
+  // else gets read-only view: no Save / Add / Load / Delete buttons, clicking
+  // a node doesn't open the editor, and drag/reparent is disabled.
+  const canEditChart = !!isSuperAdminActive;
   const { activeTeamspaceId } = useTeamspace();
   const { refresh: refreshOrgContext } = useOrg();
   const [members, setMembers] = useState([]);
@@ -279,10 +283,11 @@ export default function OrgChartPage() {
     setIsPanning(false);
     panStart.current = null;
     if (draggedNodeId && moved) {
-      // Real drag — save the new position
-      scheduleAutoSave(chart);
-    } else if (draggedNodeId && !moved) {
-      // Pure click on a node — open the edit modal
+      // Real drag — save the new position (only when editable; otherwise the
+      // node position reverts because we don't persist read-only changes).
+      if (canEditChart) scheduleAutoSave(chart);
+    } else if (draggedNodeId && !moved && canEditChart) {
+      // Pure click on a node — open the edit modal (Super Admin only).
       const node = chart.nodes.find(n => n.id === draggedNodeId);
       if (node) openEdit(node);
     }
@@ -325,39 +330,46 @@ export default function OrgChartPage() {
       <div className="orgchart-toolbar">
         <div className="orgchart-toolbar-left">
           <span className="tasks-count">{chart.nodes.length} nodes</span>
+          {!canEditChart && <span className="muted" style={{ fontSize: '0.75rem' }}>· read-only (Super Admin to edit)</span>}
 
-          {/* ── SAVE BUTTON ── */}
-          <button
-            className={`btn btn-sm ${hasChanges ? 'btn-primary orgchart-save-pulse' : 'btn-ghost'}`}
-            onClick={handleSaveToBackend}
-            disabled={saving || !hasChanges}
-            title={hasChanges ? 'Save changes to server' : 'No changes to save'}
-          >
-            {saving ? (
-              <><span className="spinner" style={{ width: 14, height: 14 }} /> Saving...</>
-            ) : (
-              <>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
-                {hasChanges ? 'Save Chart' : 'Saved'}
-              </>
-            )}
-          </button>
+          {canEditChart && (
+            <>
+              {/* ── SAVE BUTTON ── */}
+              <button
+                className={`btn btn-sm ${hasChanges ? 'btn-primary orgchart-save-pulse' : 'btn-ghost'}`}
+                onClick={handleSaveToBackend}
+                disabled={saving || !hasChanges}
+                title={hasChanges ? 'Save changes to server' : 'No changes to save'}
+              >
+                {saving ? (
+                  <><span className="spinner" style={{ width: 14, height: 14 }} /> Saving...</>
+                ) : (
+                  <>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+                    {hasChanges ? 'Save Chart' : 'Saved'}
+                  </>
+                )}
+              </button>
 
-          {saveStatus === 'saved' && <span className="orgchart-save-msg orgchart-save-ok animate-in">✓ Saved & applied to roles</span>}
-          {saveStatus === 'error' && <span className="orgchart-save-msg orgchart-save-err animate-in">✗ Failed to save</span>}
-          {hasChanges && !saving && <span className="orgchart-unsaved-dot" title="Unsaved changes" />}
+              {saveStatus === 'saved' && <span className="orgchart-save-msg orgchart-save-ok animate-in">✓ Saved & applied to roles</span>}
+              {saveStatus === 'error' && <span className="orgchart-save-msg orgchart-save-err animate-in">✗ Failed to save</span>}
+              {hasChanges && !saving && <span className="orgchart-unsaved-dot" title="Unsaved changes" />}
 
-          <button className="btn btn-ghost btn-sm" onClick={() => handleAddChild('STANDALONE')}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Node
-          </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => handleAddChild('STANDALONE')}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Node
+              </button>
+            </>
+          )}
           <button className="btn btn-ghost btn-sm" onClick={resetView}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1018 0 9 9 0 00-18 0M12 8v4l3 3"/></svg>
             Reset View
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { if (confirm('Reset chart to Mayvel default? Your changes will be lost.')) { setChart(MAYVEL_ORG_CHART); setHasChanges(true); setSaveStatus(''); setZoom(0.55); setPan({ x: 20, y: 10 }); } }}>
-            🏢 Load Company Chart
-          </button>
+          {canEditChart && (
+            <button className="btn btn-ghost btn-sm" onClick={() => { if (confirm('Reset chart to Mayvel default? Your changes will be lost.')) { setChart(MAYVEL_ORG_CHART); setHasChanges(true); setSaveStatus(''); setZoom(0.55); setPan({ x: 20, y: 10 }); } }}>
+              🏢 Load Company Chart
+            </button>
+          )}
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/organization/members')} title="Switch to the members list view">
             👥 Members list
           </button>
