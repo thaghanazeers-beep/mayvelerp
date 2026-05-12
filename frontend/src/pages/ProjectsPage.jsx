@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getProjects, createProject, deleteProject, updateProject, getTasks, createTask, updateTask, deleteTask, getTeam, getAllocations } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { useToast } from '../context/ToastContext';
 import TaskDetailPage from './TaskDetailPage';
 import ViewTabs from '../components/ViewTabs';
 import './ProjectsPage.css';
@@ -31,6 +32,7 @@ const STATUS_BADGE = {
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const { activeTeamspaceId } = useTeamspace();
+  const toast = useToast();
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -162,9 +164,14 @@ export default function ProjectsPage() {
     } catch (err) { console.error(err); }
   };
 
+  const showErr = (err, fallback) => {
+    console.error(err);
+    toast?.error(err.response?.data?.error || err.message || fallback);
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Delete this project and unlink its tasks?')) return;
-    try { await deleteProject(id); fetchAll(); } catch (err) { console.error(err); }
+    try { await deleteProject(id); fetchAll(); } catch (err) { showErr(err, 'Failed to delete project'); }
   };
 
   const handleCreateTask = async () => {
@@ -189,24 +196,24 @@ export default function ProjectsPage() {
       await createTask(newTask);
       fetchAll();
       setSelectedTask(newTask);
-    } catch (err) { console.error(err); }
+    } catch (err) { showErr(err, 'Failed to create task'); }
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
     try { await updateTask(taskId, { status: newStatus }); fetchAll(); }
-    catch (err) { console.error(err); }
+    catch (err) { showErr(err, 'Failed to update task'); }
   };
 
   const handleProjectStatusChange = async (projectId, newStatus) => {
-    try { 
-      await updateProject(projectId, { status: newStatus }); 
-      fetchAll(); 
+    try {
+      await updateProject(projectId, { status: newStatus });
+      fetchAll();
     }
-    catch (err) { console.error(err); }
+    catch (err) { showErr(err, 'Failed to update project status'); }
   };
 
   const handleDeleteTask = async (id) => {
-    try { await deleteTask(id); fetchAll(); } catch (err) { console.error(err); }
+    try { await deleteTask(id); fetchAll(); } catch (err) { showErr(err, 'Failed to delete task'); }
   };
 
   // Drag & Drop
@@ -217,7 +224,8 @@ export default function ProjectsPage() {
     e.preventDefault();
     document.querySelectorAll('.board-column').forEach(col => col.classList.remove('drag-over'));
     if (dragItem.current && dragItem.current.status !== status) {
-      try { await updateTask(dragItem.current.id, { status }); fetchAll(); } catch {}
+      try { await updateTask(dragItem.current.id, { status }); fetchAll(); }
+      catch (err) { showErr(err, 'Failed to move task'); }
     }
     dragItem.current = null;
   };

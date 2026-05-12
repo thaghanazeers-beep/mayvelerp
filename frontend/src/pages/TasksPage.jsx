@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getTasks, createTask, updateTask, deleteTask, getTeam, getProjects, getSprints, getAllocations, signedFileUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { useToast } from '../context/ToastContext';
 import { taskUrl, idFromTaskUrlSegment } from '../utils/slug';
 import TaskDetailPage from './TaskDetailPage';
 import ViewTabs from '../components/ViewTabs';
@@ -29,6 +30,7 @@ const STATUS_BADGE = {
 export default function TasksPage() {
   const { user } = useAuth();
   const { activeTeamspaceId, setActiveTeamspaceId } = useTeamspace();
+  const toast = useToast();
   const navigate = useNavigate();
   const params = useParams();
   // Two URL shapes can land here:
@@ -259,7 +261,10 @@ export default function TasksPage() {
       await createTask(newTask);
       await fetchTasks();
       setSelectedTask(newTask);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast?.error(err.response?.data?.error || err.message || 'Failed to create task');
+    }
   };
 
   const isAdminOrOwner = user?.role === 'Admin' || user?.role === 'Team Owner';
@@ -280,14 +285,20 @@ export default function TasksPage() {
     const task = tasks.find(t => t.id === taskId);
     if (task && !canChangeStatusTo(task, newStatus)) return;
     try { await updateTask(taskId, { status: newStatus }); fetchTasks(); }
-    catch (err) { console.error(err); }
+    catch (err) {
+      console.error(err);
+      toast?.error(err.response?.data?.error || err.message || 'Failed to update task');
+    }
   };
 
   const handleDelete = async (id) => {
     const task = tasks.find(t => t.id === id);
     if (!task || !canEditTask(task)) return;
     try { await deleteTask(id); fetchTasks(); }
-    catch (err) { console.error(err); }
+    catch (err) {
+      console.error(err);
+      toast?.error(err.response?.data?.error || err.message || 'Failed to delete task');
+    }
   };
 
   // Drag & Drop

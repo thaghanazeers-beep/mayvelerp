@@ -25,14 +25,6 @@ export default function GlobalApprovalsPage() {
   const [rejectPlanId, setRejectPlanId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  if (!user?.isSuperAdmin) return <div className="plan-page"><div className="plan-empty">Super Admin only.</div></div>;
-  if (!isSuperAdminActive) return (
-    <div className="plan-page" style={{ padding: 24 }}>
-      <h2>Switch to Super Admin mode</h2>
-      <p className="muted">Flip the Super Admin toggle in the header to access the global approvals center.</p>
-    </div>
-  );
-
   const reload = async () => {
     setLoading(true);
     try {
@@ -45,7 +37,19 @@ export default function GlobalApprovalsPage() {
     } catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setLoading(false); }
   };
-  useEffect(() => { reload(); }, []);
+  // useEffect must run unconditionally so Rules of Hooks stay satisfied even
+  // when the user toggles Super Admin on/off without remounting the page.
+  useEffect(() => {
+    if (user?.isSuperAdmin && isSuperAdminActive) reload();
+  }, [user?.isSuperAdmin, isSuperAdminActive]);
+
+  if (!user?.isSuperAdmin) return <div className="plan-page"><div className="plan-empty">Super Admin only.</div></div>;
+  if (!isSuperAdminActive) return (
+    <div className="plan-page" style={{ padding: 24 }}>
+      <h2>Switch to Super Admin mode</h2>
+      <p className="muted">Flip the Super Admin toggle in the header to access the global approvals center.</p>
+    </div>
+  );
 
   const projById = Object.fromEntries(projects.map(p => [String(p._id), p]));
   const tsById   = Object.fromEntries(teamspaces.map(t => [String(t._id), t]));

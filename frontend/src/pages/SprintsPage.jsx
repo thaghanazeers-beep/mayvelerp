@@ -31,7 +31,7 @@ const daysLeft = (end) => {
 export default function SprintsPage() {
   const { user } = useAuth();
   const { activeTeamspaceId } = useTeamspace();
-  const isAdmin = user?.role === 'Admin' || user?.role === 'Team Owner';
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Team Owner' || user?.isSuperAdmin;
 
   const [sprints, setSprints]     = useState([]);
   const [projects, setProjects]   = useState([]);
@@ -500,7 +500,7 @@ export default function SprintsPage() {
                   <label className="label">Roll over incomplete tasks to</label>
                   <select className="input" value={rolloverTarget} onChange={e => setRolloverTarget(e.target.value)}>
                     <option value="">Unassign (backlog)</option>
-                    {planned.filter(s => s._id !== showComplete._id).map(s => (
+                    {sprints.filter(s => s.status === 'planned' && s._id !== showComplete._id).map(s => (
                       <option key={s._id} value={s._id}>{s.name}</option>
                     ))}
                   </select>

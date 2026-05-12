@@ -27,12 +27,12 @@ export default function TeamSettingsPage() {
   const handleInvite = async (e) => {
     e.preventDefault();
     try {
-      await inviteUser(invEmail, invRole, user?.name || 'Admin');
+      await inviteUser(activeTeamspaceId, invEmail, invRole, user?.name || 'Admin');
       setShowInvite(false);
       setInvEmail(''); setInvRole('Member');
       refresh();
     } catch (err) {
-      alert(err?.response?.data?.error || 'Failed to invite');
+      alert(err?.response?.data?.error || err?.response?.data?.message || 'Failed to invite');
     }
   };
 

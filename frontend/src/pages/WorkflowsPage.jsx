@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getWorkflows, createWorkflow, deleteWorkflow, toggleWorkflow, getWorkflowLogs, getTeam, getProjects } from '../api';
+import { getWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, toggleWorkflow, getWorkflowLogs, getTeam, getProjects } from '../api';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { useToast } from '../context/ToastContext';
 import ViewTabs from '../components/ViewTabs';
 import './WorkflowsPage.css';
 
@@ -70,6 +71,11 @@ const WF_COLORS = ['#6c5ce7','#00cec9','#fd79a8','#fdcb6e','#74b9ff','#ff6b6b','
 
 export default function WorkflowsPage() {
   const { activeTeamspaceId } = useTeamspace();
+  const toast = useToast();
+  const showErr = (err, fallback) => {
+    console.error(err);
+    toast?.error(err.response?.data?.error || err.message || fallback);
+  };
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showBuilder, setShowBuilder] = useState(false);
@@ -155,30 +161,32 @@ export default function WorkflowsPage() {
 
       if (editingWfId) {
         await updateWorkflow(editingWfId, payload);
+        toast?.success('Workflow updated');
       } else {
         await createWorkflow(payload);
+        toast?.success('Workflow created');
       }
-      
+
       setShowBuilder(false);
       fetchAll();
-    } catch (err) { console.error(err); }
+    } catch (err) { showErr(err, 'Failed to save workflow'); }
   };
 
   const handleToggle = async (id) => {
     try { await toggleWorkflow(id); fetchAll(); }
-    catch (err) { console.error(err); }
+    catch (err) { showErr(err, 'Failed to toggle workflow'); }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this workflow?')) return;
     try { await deleteWorkflow(id); fetchAll(); }
-    catch (err) { console.error(err); }
+    catch (err) { showErr(err, 'Failed to delete workflow'); }
   };
 
   const viewLogs = async (wf) => {
     setShowLogs(wf);
     try { const res = await getWorkflowLogs(wf._id); setLogs(res.data); }
-    catch (err) { console.error(err); }
+    catch (err) { showErr(err, 'Failed to fetch logs'); }
   };
 
   const addCondition = () => setWfConditions([...wfConditions, { field: 'status', operator: 'equals', value: '' }]);

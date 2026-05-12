@@ -26,9 +26,11 @@ export default function PlanApprovalsPage() {
     })();
   }, [activeTeamspaceId]);
 
-  if (user?.role !== 'Admin') {
-    return <div className="plan-page"><div className="plan-empty">Admin only.</div></div>;
-  }
+  // No role gate: the backend already filters `?awaitingMyApproval=1` to
+  // plans whose project.ownerId === req.user.userId (plus SuperAdmin sees all).
+  // The old `if (user?.role !== 'Admin')` gate locked out project owners who
+  // weren't global Admins, even though those are exactly the people who
+  // should see this page.
 
   const proj = (id) => projects.find(p => p._id === id);
 

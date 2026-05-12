@@ -497,8 +497,16 @@ router.delete('/plans/:planId/lines/:lineId', async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────
 router.get('/entries', async (req, res) => {
   const filter = { teamspaceId: tsId(req) };
-  if (req.query.userId)    filter.userId    = req.query.userId;
-  else if (!isAdmin(req))  filter.userId    = req.user.userId;       // members see only their own
+  // Only Super Admins may read another user's time entries via ?userId=.
+  // Workspace "Admin" is a common role here (multiple test users have it) so
+  // it is NOT enough — payroll-class data needs the explicit elevated flag.
+  const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+  const isSuper = !!me?.isSuperAdmin;
+  if (!isSuper) {
+    filter.userId = req.user.userId;
+  } else if (req.query.userId) {
+    filter.userId = req.query.userId;
+  }
   if (req.query.projectId) filter.projectId = req.query.projectId;
   if (req.query.from)      filter.date      = { ...filter.date, $gte: req.query.from };
   if (req.query.to)        filter.date      = { ...filter.date, $lte: req.query.to };
@@ -968,10 +976,18 @@ router.get('/plans/:planId/allocations', async (req, res) => {
   ok(res, allocs);
 });
 
-// GET /api/time/allocations  — generic; filterable by user/project/from/to
+// GET /api/time/allocations  — generic; filterable by user/project/from/to.
+// Non-SuperAdmin callers are forced to self-scope (allocations expose
+// billable rates and cost data).
 router.get('/allocations', async (req, res) => {
   const filter = { teamspaceId: tsId(req) };
-  if (req.query.userId)    filter.userId    = req.query.userId;
+  const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+  const isSuper = !!me?.isSuperAdmin;
+  if (!isSuper) {
+    filter.userId = req.user.userId;
+  } else if (req.query.userId) {
+    filter.userId = req.query.userId;
+  }
   if (req.query.projectId) filter.projectId = req.query.projectId;
   if (req.query.planId)    filter.planId    = req.query.planId;
   if (req.query.from)      filter.weekStart = { ...filter.weekStart, $gte: new Date(req.query.from) };

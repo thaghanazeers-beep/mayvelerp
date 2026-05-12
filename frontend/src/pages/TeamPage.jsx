@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getTeam, inviteUser, removeUser, updateUser, uploadAvatar, signedFileUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
+import { useToast } from '../context/ToastContext';
 import ViewTabs from '../components/ViewTabs';
 import './TeamPage.css';
 
@@ -13,7 +14,12 @@ export default function TeamPage() {
   const { user } = useAuth();
   const { activeTeamspaceId } = useTeamspace();
   const { isManagement, getOrgRole, getManagerChain } = useOrg();
-  const isAdmin = user?.role === 'Admin' || user?.role === 'Team Owner';
+  const toast = useToast();
+  const myId = user?._id || user?.id;
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Team Owner' || user?.isSuperAdmin;
+  // Backend `PUT /api/users/:id` only lets SuperAdmin OR self edit. Gate the
+  // Edit button accordingly so regular admins don't click into a 403.
+  const canEditUser = (member) => user?.isSuperAdmin || String(member._id) === String(myId);
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -100,12 +106,15 @@ export default function TeamPage() {
 
   // ── Remove ──────────────────────────────────────────────
   const handleRemove = async (id, name) => {
-    if (!confirm(`Remove ${name || 'this member'} from the workspace?`)) return;
+    if (!confirm(`Remove ${name || 'this member'} from this teamspace?`)) return;
     try {
       await removeUser(id);
+      toast?.success(`${name || 'Member'} removed from teamspace`);
       fetchTeam();
     } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to remove member';
       console.error('Failed to remove:', err);
+      toast?.error(msg);
     }
   };
 
@@ -198,10 +207,12 @@ export default function TeamPage() {
                   </div>
                   {isAdmin && (
                     <div className="team-card-actions">
-                      <button className="btn-icon team-edit" onClick={() => openEdit(member)} title="Edit member">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      {member._id !== user?.id && (
+                      {canEditUser(member) && (
+                        <button className="btn-icon team-edit" onClick={() => openEdit(member)} title="Edit member">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                      )}
+                      {String(member._id) !== String(myId) && (
                         <button className="btn-icon team-remove" onClick={() => handleRemove(member._id, member.name)} title="Remove member">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
@@ -252,7 +263,7 @@ export default function TeamPage() {
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>→ {reportsTo.name}</span>
                   )}
                   <span className={`badge ${member.role === 'Admin' ? 'badge-admin' : member.role === 'Team Owner' ? 'badge-owner' : 'badge-member'}`}>{member.role}</span>
-                  {isAdmin && (
+                  {isAdmin && canEditUser(member) && (
                     <div className="team-card-actions" style={{ marginLeft: 8 }}>
                       <button className="btn-icon team-edit" onClick={() => openEdit(member)} title="Edit" style={{ width: 28, height: 28 }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -310,10 +321,12 @@ export default function TeamPage() {
                     {isAdmin && (
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button className="btn-icon team-edit" onClick={() => openEdit(member)} title="Edit" style={{ width: 28, height: 28 }}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          </button>
-                          {member._id !== user?._id && (
+                          {canEditUser(member) && (
+                            <button className="btn-icon team-edit" onClick={() => openEdit(member)} title="Edit" style={{ width: 28, height: 28 }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                          )}
+                          {String(member._id) !== String(myId) && (
                             <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', fontSize: '0.78rem' }} onClick={() => handleRemove(member._id, member.name)}>Remove</button>
                           )}
                         </div>

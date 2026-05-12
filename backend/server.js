@@ -823,7 +823,20 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
-app.post('/api/projects', async (req, res) => {
+// Projects are org-scoped (visible to all teamspaces), so writes need a stronger
+// gate than the per-teamspace role: only a global Admin or a Super Admin may
+// create, edit, or delete a project. Anyone with an account used to be able to
+// mutate the org-wide catalog.
+async function requireGlobalAdmin(req, res, next) {
+  try {
+    const me = await User.findById(req.user.userId).select('role isSuperAdmin').lean();
+    if (!me) return res.status(401).json({ error: 'Not authenticated' });
+    if (me.isSuperAdmin || me.role === 'Admin' || me.role === 'Team Owner') return next();
+    return res.status(403).json({ error: 'Only an Admin or Super Admin can manage projects' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+}
+
+app.post('/api/projects', requireGlobalAdmin, async (req, res) => {
   try {
     const project = new Project({ ...req.body, teamspaceId: req.body.teamspaceId || req.teamspaceId });
     await project.save();
@@ -833,7 +846,7 @@ app.post('/api/projects', async (req, res) => {
   }
 });
 
-app.put('/api/projects/:id', async (req, res) => {
+app.put('/api/projects/:id', requireGlobalAdmin, async (req, res) => {
   try {
     const project = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(project);
@@ -842,7 +855,7 @@ app.put('/api/projects/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/projects/:id', async (req, res) => {
+app.delete('/api/projects/:id', requireGlobalAdmin, async (req, res) => {
   try {
     await Project.findByIdAndDelete(req.params.id);
     await Task.updateMany({ projectId: req.params.id }, { $unset: { projectId: '' } });
@@ -1231,12 +1244,22 @@ app.post('/api/push/test', authenticate, async (req, res) => {
 });
 
 // ==================== NOTIFICATION ROUTES ====================
-// Notifications filtered by user name (passed as ?user= query param)
+// Recipient is *always* the JWT caller. The legacy `?user=NAME` query is
+// ignored to prevent cross-user notification reads (any logged-in user used to
+// be able to read another user's notifications by passing their name).
+// Notifications are stored keyed by the user's display name (legacy schema),
+// so we resolve the caller's name from their userId on the JWT.
+async function jwtCallerName(req) {
+  // Trust only req.user.userId — never req.query.user.
+  const me = await User.findById(req.user.userId).select('name').lean();
+  return me?.name || null;
+}
+
 app.get('/api/notifications', async (req, res) => {
   try {
-    const { user } = req.query;
-    const filter = user ? { userId: user } : {};
-    const notifications = await Notification.find(filter)
+    const name = await jwtCallerName(req);
+    if (!name) return res.json([]);
+    const notifications = await Notification.find({ userId: name })
       .sort({ createdAt: -1 })
       .limit(50);
     res.json(notifications);
@@ -1247,10 +1270,9 @@ app.get('/api/notifications', async (req, res) => {
 
 app.get('/api/notifications/unread-count', async (req, res) => {
   try {
-    const { user } = req.query;
-    const filter = { read: false };
-    if (user) filter.userId = user;
-    const count = await Notification.countDocuments(filter);
+    const name = await jwtCallerName(req);
+    if (!name) return res.json({ count: 0 });
+    const count = await Notification.countDocuments({ read: false, userId: name });
     res.json({ count });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1258,14 +1280,12 @@ app.get('/api/notifications/unread-count', async (req, res) => {
 });
 
 // Per-teamspace unread counts for the sidebar bell icons.
-//   ?user=NAME → { teamspaceId: count, ... }   (omits the null/global bucket)
 app.get('/api/notifications/unread-by-teamspace', async (req, res) => {
   try {
-    const { user } = req.query;
-    const match = { read: false, teamspaceId: { $ne: null } };
-    if (user) match.userId = user;
+    const name = await jwtCallerName(req);
+    if (!name) return res.json({});
     const rows = await Notification.aggregate([
-      { $match: match },
+      { $match: { read: false, userId: name, teamspaceId: { $ne: null } } },
       { $group: { _id: '$teamspaceId', count: { $sum: 1 } } },
     ]);
     const out = {};
@@ -1276,7 +1296,13 @@ app.get('/api/notifications/unread-by-teamspace', async (req, res) => {
 
 app.put('/api/notifications/:id/read', async (req, res) => {
   try {
-    await Notification.findByIdAndUpdate(req.params.id, { read: true });
+    const name = await jwtCallerName(req);
+    // Only mark as read if this notification actually belongs to the caller.
+    const n = await Notification.findOneAndUpdate(
+      { _id: req.params.id, userId: name },
+      { read: true }
+    );
+    if (!n) return res.status(404).json({ error: 'Notification not found' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1285,10 +1311,9 @@ app.put('/api/notifications/:id/read', async (req, res) => {
 
 app.post('/api/notifications/mark-all-read', async (req, res) => {
   try {
-    const { user } = req.body;
-    const filter = { read: false };
-    if (user) filter.userId = user;
-    await Notification.updateMany(filter, { read: true });
+    const name = await jwtCallerName(req);
+    if (!name) return res.json({ success: true });
+    await Notification.updateMany({ read: false, userId: name }, { read: true });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1297,7 +1322,9 @@ app.post('/api/notifications/mark-all-read', async (req, res) => {
 
 app.delete('/api/notifications/:id', async (req, res) => {
   try {
-    await Notification.findByIdAndDelete(req.params.id);
+    const name = await jwtCallerName(req);
+    const n = await Notification.findOneAndDelete({ _id: req.params.id, userId: name });
+    if (!n) return res.status(404).json({ error: 'Notification not found' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -225,9 +225,13 @@ export default function TaskDetailPage({ task, onBack, onUpdated }) {
     }, 800);
   };
 
-  const isAdminOrOwner = currentUser?.role === 'Admin' || currentUser?.role === 'Team Owner';
-  const isAssignee = currentUser?.name === assignee || !assignee;
-  const canEdit = isAdminOrOwner || isAssignee;
+  const isAdminOrOwner = currentUser?.role === 'Admin' || currentUser?.role === 'Team Owner' || currentUser?.isSuperAdmin;
+  const isCreator = currentUser?.name && task?.createdBy && currentUser.name === task.createdBy;
+  // Only the assignee, the task creator, or an admin can edit. An empty assignee
+  // used to make the task open to anyone — too permissive — so we no longer treat
+  // unassigned as "anyone can edit".
+  const isAssignee = !!assignee && currentUser?.name === assignee;
+  const canEdit = isAdminOrOwner || isAssignee || isCreator;
 
   const canChangeStatusTo = (newStatus) => {
     if (!canEdit) return false;
