@@ -206,6 +206,21 @@ router.get('/plans', async (req, res) => {
   const filter = { teamspaceId: tsId(req) };
   if (req.query.projectId) filter.projectId = req.query.projectId;
   if (req.query.status)    filter.status    = req.query.status;
+  // ?mine=1 → only plans created by the requesting user.
+  // ?awaitingMyApproval=1 → only plans pending approval on projects where the
+  // requester is the project owner (ProjectHoursPlan.createdBy stores the
+  // user's name, but approval routes use Project.ownerId).
+  if (req.query.mine === '1' || req.query.mine === 'true') {
+    const me = await User.findById(req.user.userId).select('name').lean();
+    if (me?.name) filter.createdBy = me.name;
+    else return ok(res, []);
+  }
+  if (req.query.awaitingMyApproval === '1' || req.query.awaitingMyApproval === 'true') {
+    filter.status = 'pending';
+    const myProjects = await Project.find({ ownerId: req.user.userId }).select('_id').lean();
+    filter.projectId = { $in: myProjects.map(p => p._id) };
+    if (myProjects.length === 0) return ok(res, []);
+  }
   ok(res, await ProjectHoursPlan.find(filter).sort({ periodMonth: -1, createdAt: -1 }));
 });
 router.get('/plans/:id', async (req, res) => {

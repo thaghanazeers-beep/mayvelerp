@@ -14,7 +14,14 @@ export default function PlanApprovalsPage() {
 
   useEffect(() => {
     (async () => {
-      const [p, pr] = await Promise.all([getPlans({ status: 'pending' }), getProjects(activeTeamspaceId)]);
+      // Show only plans pending the CURRENT user's approval — backend filters
+      // to plans whose project.ownerId matches req.user.userId. Anyone who
+      // happens to be Admin can land on this page; the list will simply be
+      // empty if they don't own any projects.
+      const [p, pr] = await Promise.all([
+        getPlans({ awaitingMyApproval: 1 }),
+        getProjects(activeTeamspaceId),
+      ]);
       setPlans(p.data); setProjects(pr.data);
     })();
   }, [activeTeamspaceId]);
@@ -35,7 +42,8 @@ export default function PlanApprovalsPage() {
       {plans.length === 0 ? (
         <div className="plan-empty">
           <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
-          <p>No plans waiting for approval.</p>
+          <p>No plans waiting for your approval.</p>
+          <p className="muted" style={{ fontSize: '0.78rem' }}>Only plans submitted for projects you own appear here.</p>
         </div>
       ) : (
         <div className="plan-approval-list">
