@@ -25,7 +25,7 @@ function roleHas(roleList, role) { return roleList.includes(role); }
 // their access level. The backend re-checks isSuperAdmin on every endpoint,
 // so a non-SuperAdmin who somehow reaches this page won't be able to mutate.
 export default function AccessControlPage() {
-  const { user, loginUser } = useAuth();
+  const { user, loginUser, isSuperAdminActive } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -58,6 +58,17 @@ export default function AccessControlPage() {
       <div className="p-3">
         <h2>Access denied</h2>
         <p className="muted">Only the Super Admin can manage user access levels.</p>
+      </div>
+    );
+  }
+  if (!isSuperAdminActive) {
+    return (
+      <div style={{ padding: 24, maxWidth: 720, margin: '0 auto' }}>
+        <h2>Switch to Super Admin mode</h2>
+        <p className="muted" style={{ fontSize: '0.9rem' }}>
+          You're currently in <strong>Normal mode</strong>. To manage user access levels, flip the
+          <strong> Super Admin</strong> toggle in the header back on.
+        </p>
       </div>
     );
   }

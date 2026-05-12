@@ -70,7 +70,7 @@ export default function Layout({ children, onToast }) {
     }
   };
 
-  const { user, logout } = useAuth();
+  const { user, logout, superAdminMode, setSuperAdminMode, isSuperAdminActive } = useAuth();
   const themeCtx = useTheme();
   const theme = themeCtx?.theme || 'dark';
   const toggleTheme = themeCtx?.toggleTheme || (() => {});
@@ -193,7 +193,9 @@ export default function Layout({ children, onToast }) {
   // SuperAdmin gets owner privileges everywhere.
   const isOwnerOf = (ts) => {
     if (!ts) return false;
-    if (user?.isSuperAdmin) return true;
+    // SuperAdmin sees owner items in every teamspace ONLY while in super-admin
+    // mode. In normal mode, only the actual ownerId match counts.
+    if (isSuperAdminActive) return true;
     return String(ts.ownerId) === String(user?._id || user?.id);
   };
 
@@ -355,7 +357,7 @@ export default function Layout({ children, onToast }) {
             <span>Help & Guide</span>
           </button>
 
-          {user?.isSuperAdmin && (
+          {isSuperAdminActive && (
             <button className={`sidebar-link ${activePage === 'access' ? 'active' : ''}`} onClick={() => onNavigate('access')} title="Manage user access levels (Super Admin only)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               <span>Access control</span>
@@ -381,9 +383,35 @@ export default function Layout({ children, onToast }) {
             <h2 className="page-title">{pageTitles[activePage] || ''}</h2>
           </div>
           <div className="header-right">
+            {/* SuperAdmin-only toggle: lets workspace owner switch between full
+                Super Admin view (sees + manages every teamspace) and Normal view
+                (behaves like any regular admin — only their own teamspaces +
+                respects owner-only gates everywhere). */}
+            {user?.isSuperAdmin && (
+              <label
+                className="superadmin-toggle"
+                title={superAdminMode ? 'Click to switch to Normal mode (act as a regular admin)' : 'Click to switch back to Super Admin mode'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                  padding: '6px 10px', background: superAdminMode ? 'linear-gradient(90deg,#6c5ce7,#a29bfe)' : 'var(--bg-elevated)',
+                  color: superAdminMode ? 'white' : 'var(--text)',
+                  borderRadius: 8, fontSize: '0.75rem', fontWeight: 600, userSelect: 'none',
+                  border: '1px solid ' + (superAdminMode ? '#6c5ce7' : 'var(--border)'),
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={superAdminMode}
+                  onChange={e => setSuperAdminMode(e.target.checked)}
+                  style={{ accentColor: superAdminMode ? 'white' : '#6c5ce7' }}
+                />
+                <span>{superAdminMode ? '👑 Super Admin' : '👤 Normal'}</span>
+              </label>
+            )}
             <NotificationBell onToast={onToast} />
             <span className="header-user-name">{user?.name}</span>
-            <span className={`badge ${user?.role === 'Admin' ? 'badge-admin' : 'badge-member'}`}>{user?.isSuperAdmin ? 'Super Admin' : user?.role}</span>
+            <span className={`badge ${user?.role === 'Admin' ? 'badge-admin' : 'badge-member'}`}>{isSuperAdminActive ? 'Super Admin' : user?.role}</span>
             <div className="header-avatar" onClick={() => onNavigate('profile')} style={{ cursor: 'pointer' }}>
               {user?.profilePictureUrl ? <img src={signedFileUrl(user.profilePictureUrl)} alt={user.name} /> : <span>{user?.name?.charAt(0)?.toUpperCase()}</span>}
             </div>
