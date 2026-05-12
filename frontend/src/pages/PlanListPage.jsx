@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
-import { getPlans, createPlan, getProjects, formatINR } from '../api';
+import { getPlans, createPlan, getProjects, getSprints, formatINR } from '../api';
 import './PlanPages.css';
 
 // Time → Plans page. Project-first flow:
@@ -29,6 +29,9 @@ export default function PlanListPage() {
 
   const [showNew, setShowNew] = useState(false);
   const [newPeriodMonth, setNewPeriodMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [newEndMonth, setNewEndMonth] = useState('');           // multi-month T&M
+  const [newSprintId, setNewSprintId] = useState('');           // sprint plans
+  const [sprints, setSprints] = useState([]);
   const [newTitle, setNewTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -49,6 +52,12 @@ export default function PlanListPage() {
       .finally(() => setLoading(false));
   }, [selectedProjectId]);
 
+  // For sprint-type projects: load sprints from the active teamspace so the
+  // create-plan modal can show a sprint picker.
+  useEffect(() => {
+    if (activeTeamspaceId) getSprints(activeTeamspaceId).then(r => setSprints(r.data || [])).catch(() => {});
+  }, [activeTeamspaceId]);
+
   const selectedProject = useMemo(
     () => projects.find(p => p._id === selectedProjectId),
     [projects, selectedProjectId]
@@ -67,15 +76,29 @@ export default function PlanListPage() {
     e.preventDefault();
     setError(''); setCreating(true);
     try {
-      const payload = { projectId: selectedProjectId, periodMonth: newPeriodMonth };
+      const payload = { projectId: selectedProjectId };
       if (newTitle.trim()) payload.title = newTitle.trim();
+      const t = selectedProject?.type || 'tm';
+      if (t === 'sprint') {
+        if (!newSprintId) throw new Error('Pick a sprint');
+        payload.periodKind = 'sprint';
+        payload.sprintId = newSprintId;
+        // periodMonth still needs SOMETHING; backend ignores it for sprint kind but the schema requires the field
+        payload.periodMonth = newPeriodMonth;
+      } else if (t === 'tm' && newEndMonth && newEndMonth !== newPeriodMonth) {
+        payload.periodKind = 'multi-month';
+        payload.periodMonth = newPeriodMonth;
+        payload.endMonth = newEndMonth;
+      } else {
+        payload.periodMonth = newPeriodMonth;
+      }
       const r = await createPlan(payload);
-      setShowNew(false); setNewTitle('');
+      setShowNew(false); setNewTitle(''); setNewEndMonth(''); setNewSprintId('');
       toast.success('Draft plan created — add rows and submit when ready');
       navigate(`/t/${activeTeamspaceId}/time/plans/${r.data._id}`);
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
-      toast.error(err.response?.data?.error || err.message);
+      const msg = err.response?.data?.error || err.message;
+      setError(msg); toast.error(msg);
     } finally { setCreating(false); }
   };
 
@@ -176,15 +199,42 @@ export default function PlanListPage() {
               </button>
             </div>
             <form onSubmit={handleCreate} className="modal-form">
-              <div className="form-field">
-                <label className="label">Month</label>
-                <input className="input" type="month" required value={newPeriodMonth} onChange={(e) => setNewPeriodMonth(e.target.value)} />
-              </div>
+              {/* Period inputs vary by project type:
+                  - tm          → month + optional end-month for multi-month bucket
+                  - sprint      → sprint picker (period taken from sprint dates)
+                  - services    → month (one parent → auto-children per month) *P3*
+                  - maintenance → month (template; auto-rolls forward) *P3* */}
+              {selectedProject.type === 'sprint' ? (
+                <div className="form-field">
+                  <label className="label">Sprint</label>
+                  <select className="input" required value={newSprintId} onChange={(e) => setNewSprintId(e.target.value)}>
+                    <option value="">— Pick a sprint —</option>
+                    {sprints.map(s => <option key={s._id} value={s._id}>{s.name} ({new Date(s.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – {new Date(s.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})</option>)}
+                  </select>
+                  <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>Period auto-set from the sprint dates.</div>
+                </div>
+              ) : (
+                <>
+                  <div className="form-field">
+                    <label className="label">{selectedProject.type === 'tm' ? 'Start month' : 'Month'}</label>
+                    <input className="input" type="month" required value={newPeriodMonth} onChange={(e) => setNewPeriodMonth(e.target.value)} />
+                  </div>
+                  {selectedProject.type === 'tm' && (
+                    <div className="form-field">
+                      <label className="label">End month <span className="muted" style={{ fontWeight: 400 }}>(optional — leave blank for single month)</span></label>
+                      <input className="input" type="month" value={newEndMonth} onChange={(e) => setNewEndMonth(e.target.value)} min={newPeriodMonth} />
+                      <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
+                        T&amp;M plans typically span 3-4 months. One approval covers the whole period.
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
               <div className="form-field">
                 <label className="label">Plan name <span className="muted" style={{ fontWeight: 400 }}>(optional)</span></label>
                 <input className="input" type="text" maxLength={120} value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={defaultTitlePreview} />
                 <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
-                  Leave blank to auto-name. Duplicate names within the same month get a "(#N)" suffix.
+                  Leave blank to auto-name. Duplicate names get a "(#N)" suffix.
                 </div>
               </div>
               {error && <div className="auth-error">{error}</div>}

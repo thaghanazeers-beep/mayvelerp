@@ -250,18 +250,48 @@ router.get('/plans/:id', async (req, res) => {
 });
 router.post('/plans', async (req, res) => {
   try {
-    const { projectId, periodMonth, title } = req.body;
-    if (!projectId || !periodMonth) return fail(res, 'projectId + periodMonth required');
-    if (!/^\d{4}-\d{2}$/.test(periodMonth)) return fail(res, 'periodMonth must be YYYY-MM');
+    const { projectId, periodMonth, title, periodKind, endMonth, sprintId } = req.body;
+    if (!projectId) return fail(res, 'projectId required');
     const project = await Project.findById(projectId);
     if (!project) return fail(res, 'Project not found', 404);
-    const { periodStart, periodEnd } = monthBounds(periodMonth);
 
-    // Auto-disambiguate title when multiple plans exist for the same project + month
-    let finalTitle = title || formatPlanTitle(project.name, periodMonth);
+    // Resolve period based on plan kind:
+    //   single-month / default       — periodMonth = 'YYYY-MM'
+    //   multi-month (T&M)            — periodMonth = 'YYYY-MM', endMonth = 'YYYY-MM' (later)
+    //   sprint                       — sprintId; period taken from Sprint.start/end
+    const kind = periodKind || (project.type === 'sprint' ? 'sprint' : project.type === 'tm' && endMonth ? 'multi-month' : 'single-month');
+    let pm = periodMonth;
+    let pStart, pEnd;
+    let sprintRef = null;
+
+    if (kind === 'sprint') {
+      if (!sprintId) return fail(res, 'sprintId required for sprint-type plan');
+      const Sprint = require('../models/Sprint');
+      sprintRef = await Sprint.findById(sprintId);
+      if (!sprintRef) return fail(res, 'Sprint not found', 404);
+      pStart = new Date(sprintRef.startDate);
+      pEnd   = new Date(sprintRef.endDate);
+      pm = `sprint:${sprintRef._id}`;
+    } else if (kind === 'multi-month') {
+      if (!/^\d{4}-\d{2}$/.test(periodMonth) || !/^\d{4}-\d{2}$/.test(endMonth)) return fail(res, 'periodMonth + endMonth must be YYYY-MM');
+      if (endMonth < periodMonth) return fail(res, 'endMonth must be after periodMonth');
+      pStart = monthBounds(periodMonth).periodStart;
+      pEnd   = monthBounds(endMonth).periodEnd;
+      pm = `${periodMonth}..${endMonth}`;
+    } else {
+      if (!/^\d{4}-\d{2}$/.test(periodMonth)) return fail(res, 'periodMonth must be YYYY-MM');
+      const b = monthBounds(periodMonth);
+      pStart = b.periodStart; pEnd = b.periodEnd;
+    }
+
+    // Auto-disambiguate title when multiple plans exist for the same project + period
+    const baseTitle = kind === 'sprint'
+      ? `${project.name} — ${sprintRef.name} budget`
+      : (title || formatPlanTitle(project.name, pm));
+    let finalTitle = title || baseTitle;
     if (!title) {
       const existing = await ProjectHoursPlan.countDocuments({
-        teamspaceId: tsId(req), projectId, periodMonth,
+        teamspaceId: tsId(req), projectId, periodMonth: pm,
       });
       if (existing > 0) finalTitle = `${finalTitle} (#${existing + 1})`;
     }
@@ -270,7 +300,11 @@ router.post('/plans', async (req, res) => {
       teamspaceId: tsId(req),
       projectId,
       title: finalTitle,
-      periodMonth, periodStart, periodEnd,
+      periodMonth: pm,
+      periodStart: pStart,
+      periodEnd:   pEnd,
+      periodKind:  kind,
+      sprintId:    sprintRef?._id,
       status: 'draft',
       createdBy: req.user?.email || 'system',
     });
