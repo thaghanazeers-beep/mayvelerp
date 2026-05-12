@@ -29,12 +29,21 @@ API.interceptors.response.use(
 );
 // Stamp /uploads/* URLs with the current JWT so the auth-protected static
 // handler will serve them. Pass-through for external URLs (e.g. pravatar.cc).
+//
+// Also rewrites any host prefix on /uploads/ paths to the current backend
+// (API_ROOT). Old data may have URLs hardcoded to http://127.0.0.1:3001
+// (from when records were created locally); we strip the prefix so the file
+// is fetched from whichever backend the user is currently pointed at.
 export const signedFileUrl = (url) => {
   if (!url) return url;
   if (!url.includes('/uploads/')) return url;
+  // Normalize: keep only the part starting at /uploads/, prepend API_ROOT.
+  const idx = url.indexOf('/uploads/');
+  const path = url.slice(idx);
+  let rewritten = `${API_ROOT}${path}`;
   const token = localStorage.getItem('token');
-  if (!token) return url;
-  return url + (url.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(token);
+  if (!token) return rewritten;
+  return rewritten + (rewritten.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(token);
 };
 
 // Auth
