@@ -50,4 +50,26 @@ function requireRole(minimumRole) {
   };
 }
 
-module.exports = { extractTeamspaceId, requireTeamspaceMembership, requireRole };
+// Stricter than requireRole('admin'): only the teamspace's actual `ownerId`
+// (or a workspace SuperAdmin) passes. Used to gate governance routes —
+// time plans, plan approvals, team mgmt, teamspace control — so a regular
+// member who happens to have admin role in the membership table still can't
+// touch them.
+async function requireTeamspaceOwner(req, res, next) {
+  try {
+    const Teamspace = require('../models/Teamspace');
+    const User      = require('../models/User');
+    const tsId = req.teamspaceId;
+    if (!tsId) return res.status(400).json({ error: 'teamspaceId required' });
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (me?.isSuperAdmin) return next();
+    const ts = await Teamspace.findById(tsId).select('ownerId').lean();
+    if (!ts) return res.status(404).json({ error: 'Teamspace not found' });
+    if (String(ts.ownerId) !== String(req.user.userId)) {
+      return res.status(403).json({ error: 'Only the teamspace owner can access this.' });
+    }
+    next();
+  } catch (err) { res.status(500).json({ error: err.message }); }
+}
+
+module.exports = { extractTeamspaceId, requireTeamspaceMembership, requireRole, requireTeamspaceOwner };

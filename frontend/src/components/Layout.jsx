@@ -7,7 +7,7 @@ import NotificationBell from './NotificationBell';
 import WelcomeModal from './WelcomeModal';
 import CommandPalette from './CommandPalette';
 import './AiChat.css';      // for the .ai-chat-launcher button styles
-import { getTeamspaces, createTeamspace, signedFileUrl } from '../api';
+import { getTeamspaces, createTeamspace, createPersonalTeamspace, signedFileUrl } from '../api';
 import './Layout.css';
 
 export default function Layout({ children, onToast }) {
@@ -172,19 +172,30 @@ export default function Layout({ children, onToast }) {
   // Check if a page under a specific teamspace is active
   const isTsChildActive = (tsId, page) => urlTeamspaceId === tsId && activePage === page;
 
-  // Items nested under each teamspace
+  // Items nested under each teamspace. `ownerOnly: true` means only the
+  // teamspace owner (or workspace SuperAdmin) sees it. Members + admins-by-role
+  // can't see budget/approval/control screens because those are governance
+  // tools that belong to whoever owns the department.
   const tsChildItems = [
     { id: 'sprints',           label: 'Sprints',           icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg> },
     { id: 'projects',          label: 'Projects',          icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> },
     { id: 'tasks',             label: 'Tasks',             icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
     { id: 'workflows',         label: 'Workflows',         icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8l4 4-4 4M8 12h8"/></svg> },
     { id: 'time-mine',         label: 'My Timesheet',      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-    { id: 'time-plans',        label: 'Time · Plans',      icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
-    { id: 'time-approvals',    label: 'Time · Plan Approvals', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg> },
-    { id: 'time-week-approvals', label: 'Time · Week Approvals', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> },
-    { id: 'team',              label: 'Team',              icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
-    { id: 'teamspace-control', label: 'Teamspace Control', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> },
+    { id: 'time-plans',        label: 'Time · Plans',      ownerOnly: true, icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+    { id: 'time-approvals',    label: 'Time · Plan Approvals', ownerOnly: true, icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg> },
+    { id: 'time-week-approvals', label: 'Time · Week Approvals', ownerOnly: true, icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> },
+    { id: 'team',              label: 'Team',              ownerOnly: true, icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
+    { id: 'teamspace-control', label: 'Teamspace Control', ownerOnly: true, icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> },
   ];
+
+  // Helper: is the current user the owner of the given teamspace?
+  // SuperAdmin gets owner privileges everywhere.
+  const isOwnerOf = (ts) => {
+    if (!ts) return false;
+    if (user?.isSuperAdmin) return true;
+    return String(ts.ownerId) === String(user?._id || user?.id);
+  };
 
   // Personal teamspace only gets basic items (no team mgmt)
   const personalChildItems = [
@@ -233,7 +244,24 @@ export default function Layout({ children, onToast }) {
             </button>
           </div>
 
-          {/* ─── No Personal Teamspace — only org teamspaces shown ─── */}
+          {/* ─── Personal workspace — opt-in. Button only shows if the user
+                doesn't already have one. Clicking creates it on-demand. ─── */}
+          {!teamspaces.some(t => t.isPersonal && String(t.ownerId) === String(user?._id || user?.id)) && (
+            <button
+              className="sidebar-link"
+              style={{ fontSize: '0.78rem', opacity: 0.7, justifyContent: 'flex-start', gap: 6, padding: '6px 12px' }}
+              title="Create a private workspace for personal tasks. Only you will see it."
+              onClick={async () => {
+                try {
+                  await createPersonalTeamspace();
+                  await refreshTeamspaces();
+                } catch (e) { alert(e.response?.data?.error || e.message); }
+              }}
+            >
+              <span>🔒</span>
+              <span>Create personal space</span>
+            </button>
+          )}
 
           {/* ─── User-created Teamspaces ─── */}
           {teamspaces.map(ts => {
@@ -273,8 +301,16 @@ export default function Layout({ children, onToast }) {
 
                 {isOpen && (
                   <div className="ts-tree-children">
-                    {/* Personal workspace: show ONLY Tasks (no projects / sprints / team / etc.) */}
-                    {(ts.isPersonal ? tsChildItems.filter(it => it.id === 'tasks') : tsChildItems).map(item => (
+                    {/* Personal workspace: show ONLY Tasks (no projects / sprints / team / etc.).
+                        For shared teamspaces: hide owner-only items (time plans, approvals,
+                        team mgmt, teamspace control) from non-owners. SuperAdmin always sees all. */}
+                    {(() => {
+                      const owner = isOwnerOf(ts);
+                      let items = tsChildItems;
+                      if (ts.isPersonal) items = items.filter(it => it.id === 'tasks');
+                      else if (!owner)   items = items.filter(it => !it.ownerOnly);
+                      return items;
+                    })().map(item => (
                       <button
                         key={item.id}
                         className={`sidebar-link sidebar-link-child ${isTsChildActive(ts._id, item.id) ? 'active' : ''}`}

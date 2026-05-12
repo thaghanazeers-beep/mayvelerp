@@ -347,9 +347,6 @@ app.post('/api/auth/login', async (req, res) => {
     if (!user || !(await verifyPassword(user, password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-    // Lazily ensure the user has a personal workspace. Created on first login
-    // after this feature ships; idempotent thereafter.
-    try { await ensurePersonalTeamspace(user); } catch (e) { console.warn('[personal-ws] ensure failed:', e.message); }
     const token = generateToken(user);
     res.json({ user, token });
   } catch (err) {
@@ -357,25 +354,27 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Idempotently ensure a personal teamspace + admin membership exists for `user`.
-async function ensurePersonalTeamspace(user) {
-  const existing = await Teamspace.findOne({ isPersonal: true, ownerId: user._id }).lean();
-  if (existing) return existing;
-  const ts = await Teamspace.create({
-    name: `${user.name}'s space`,
-    description: 'Private workspace — only you can see tasks here.',
-    icon: '🔒',
-    ownerId: user._id,
-    isPersonal: true,
-  });
-  await TeamspaceMembership.create({
-    userId: user._id,
-    teamspaceId: ts._id,
-    role: 'admin',
-    status: 'active',
-  });
-  return ts;
-}
+// POST /api/teamspaces/personal — opt-in: user explicitly asks to create their
+// personal workspace. Idempotent: returns the existing one if it already exists.
+app.post('/api/teamspaces/personal', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const existing = await Teamspace.findOne({ isPersonal: true, ownerId: user._id });
+    if (existing) return res.json(existing);
+    const ts = await Teamspace.create({
+      name: `${user.name}'s space`,
+      description: 'Private workspace — only you can see tasks here.',
+      icon: '🔒',
+      ownerId: user._id,
+      isPersonal: true,
+    });
+    await TeamspaceMembership.create({
+      userId: user._id, teamspaceId: ts._id, role: 'admin', status: 'active',
+    });
+    res.status(201).json(ts);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 // ==================== PASSWORD RESET ====================
 const APP_URL = process.env.APP_URL || 'http://localhost:5173';

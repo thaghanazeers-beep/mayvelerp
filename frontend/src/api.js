@@ -137,6 +137,7 @@ export default API;
 
 export const getTeamspaces = () => API.get('/teamspaces');
 export const createTeamspace = (data) => API.post('/teamspaces', data);
+export const createPersonalTeamspace = () => API.post('/teamspaces/personal');
 export const updateTeamspace = (id, data) => API.put(`/teamspaces/${id}`, data);
 export const deleteTeamspace = (id) => API.delete(`/teamspaces/${id}`);
 
