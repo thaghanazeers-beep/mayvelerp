@@ -141,7 +141,13 @@ const STATUS_BADGE_CLS = {
 export default function TaskDetailPage({ task, onBack, onUpdated }) {
   const auth = useAuth();
   const currentUser = auth?.user;
-  const { activeTeamspaceId } = useTeamspace();
+  const { activeTeamspaceId, teamspaces } = useTeamspace();
+  // The teamspace's owner — only they (or Super Admin in elevated mode) can
+  // approve/reject a task that's In Review.
+  const activeTeamspace = teamspaces?.find(t => String(t._id) === String(activeTeamspaceId));
+  const isTeamspaceOwner = activeTeamspace && String(activeTeamspace.ownerId) === String(currentUser?._id);
+  const isSuperAdminFlag = currentUser?.isSuperAdmin === true;
+  const canApproveReject = isTeamspaceOwner || isSuperAdminFlag;
   const [title, setTitle] = useState(task?.title || '');
   const [blocks, setBlocks] = useState(() => {
     if (task?.description) {
@@ -225,8 +231,10 @@ export default function TaskDetailPage({ task, onBack, onUpdated }) {
 
   const canChangeStatusTo = (newStatus) => {
     if (!canEdit) return false;
+    // Approve / reject transitions are owner-only: only the teamspace owner
+    // (or Super Admin in elevated mode) can flip a task to Completed/Rejected.
+    if (newStatus === 'Completed' || newStatus === 'Rejected') return canApproveReject;
     if (isAdminOrOwner) return true;
-    if (newStatus === 'Completed' || newStatus === 'Rejected') return false;
     return true;
   };
 
@@ -355,8 +363,11 @@ export default function TaskDetailPage({ task, onBack, onUpdated }) {
         </div>
       </div>
 
-      {/* Review/Approval Banner */}
-      {status === 'In Review' && isAdmin && (
+      {/* Review/Approval Banner — Approve / Reject buttons render only for
+          the teamspace OWNER (or Super Admin in elevated mode). Regular
+          global Admins who happen to be members of this workspace don't see
+          these actions. */}
+      {status === 'In Review' && canApproveReject && (
         <div className="td-banner td-banner-review">
           <div className="td-banner-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>

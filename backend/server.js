@@ -940,6 +940,20 @@ app.put('/api/tasks/:id', requireTeamspaceMembership, async (req, res) => {
       const editedAReviewedField = REVIEWED_FIELDS.some(k => Object.prototype.hasOwnProperty.call(req.body, k));
       if (editedAReviewedField) req.body.status = 'Not Yet Started';
     }
+
+    // Approve / reject gate — only the teamspace OWNER (or Super Admin) can
+    // flip a task to Completed/Rejected from In Review. Regular admins
+    // can't unilaterally approve.
+    if (oldTask && req.body.status && (req.body.status === 'Completed' || req.body.status === 'Rejected')) {
+      const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+      if (!me?.isSuperAdmin) {
+        const ts = await Teamspace.findById(oldTask.teamspaceId).select('ownerId').lean();
+        if (!ts || String(ts.ownerId) !== String(req.user.userId)) {
+          return res.status(403).json({ error: 'Only the teamspace owner can approve or reject tasks.' });
+        }
+      }
+    }
+
     const task = await Task.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
     if (!task) return res.status(404).json({ message: 'Task not found' });
 
