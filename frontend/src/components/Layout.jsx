@@ -75,10 +75,12 @@ export default function Layout({ children, onToast }) {
   // dropdown doesn't have to round-trip every render.
   const [allUsersCache, setAllUsersCache] = useState([]);
   const [showSwitcher, setShowSwitcher] = useState(false);
+  // Refresh user list every time the switcher opens, so a deleted / merged
+  // user can't show up with a stale _id and cause a 404 on click.
   useEffect(() => {
-    if (!user?.isSuperAdmin || impersonating) return;
+    if (!user?.isSuperAdmin || impersonating || !showSwitcher) return;
     listAllUsers().then(r => setAllUsersCache(r.data || [])).catch(() => {});
-  }, [user?.isSuperAdmin, impersonating]);
+  }, [user?.isSuperAdmin, impersonating, showSwitcher]);
   const handleImpersonate = async (targetId) => {
     try {
       const r = await impersonateUser(targetId);
@@ -86,7 +88,15 @@ export default function Layout({ children, onToast }) {
       setShowSwitcher(false);
       // Force a full reload so every context / cached fetch starts clean as the new user.
       window.location.href = '/';
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) {
+      const msg = e.response?.data?.error || e.message;
+      if (e.response?.status === 404) {
+        alert('That user no longer exists. Refreshing the list — try again.');
+        try { const fresh = await listAllUsers(); setAllUsersCache(fresh.data || []); } catch {}
+      } else {
+        alert(msg);
+      }
+    }
   };
   const handleRevert = () => {
     revertImpersonation();
