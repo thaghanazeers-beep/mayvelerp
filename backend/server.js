@@ -111,7 +111,48 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mayvel_ta
 let transporter = null;
 let usingEthereal = false;
 
+// Brevo HTTP API transport — mimics the nodemailer `transporter.sendMail` shape
+// so existing call sites work unchanged. Uses port 443 / HTTPS, which works on
+// platforms (like Render's free tier) that block outbound SMTP port 587.
+function parseAddress(addr) {
+  if (!addr) return null;
+  const m = String(addr).match(/^\s*(?:"?([^"<]*?)"?\s*<)?\s*([^\s<>]+@[^\s<>]+)\s*>?\s*$/);
+  if (!m) return null;
+  return { name: (m[1] || '').trim(), email: m[2].trim() };
+}
+function makeBrevoTransport(apiKey, defaultFrom) {
+  return {
+    sendMail: async (opts) => {
+      const fromObj = parseAddress(opts.from) || defaultFrom;
+      const toList = Array.isArray(opts.to) ? opts.to : [opts.to];
+      const body = {
+        sender: { name: fromObj.name || 'Mayvel Task', email: fromObj.email },
+        to: toList.map(parseAddress).filter(Boolean).map(a => ({ email: a.email, name: a.name || undefined })),
+        subject: opts.subject || 'Mayvel Task',
+        htmlContent: opts.html || `<p>${(opts.text || '').replace(/\n/g, '<br>')}</p>`,
+        textContent: opts.text || undefined,
+      };
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': apiKey, 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`Brevo ${res.status}: ${text.slice(0, 200)}`);
+      let parsed = {}; try { parsed = JSON.parse(text); } catch {}
+      return { messageId: parsed.messageId, response: `Brevo HTTP ${res.status}`, accepted: toList, rejected: [] };
+    },
+  };
+}
+
 async function initTransporter() {
+  // Prefer Brevo HTTP API (port 443) — works on Render free tier which blocks SMTP 587.
+  if (process.env.BREVO_API_KEY) {
+    const senderEmail = process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@mayvel.ai';
+    transporter = makeBrevoTransport(process.env.BREVO_API_KEY, { name: 'Mayvel Task', email: senderEmail });
+    console.log('Email: using Brevo HTTP API as ' + senderEmail);
+    return;
+  }
   if (process.env.SMTP_USER) {
     const hostName = process.env.SMTP_HOST || 'smtp.gmail.com';
     // Pre-resolve to an IPv4 address. Render's free-tier containers cannot
