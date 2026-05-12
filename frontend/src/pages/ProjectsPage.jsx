@@ -45,6 +45,8 @@ export default function ProjectsPage() {
   const [billingType, setBillingType] = useState('tm');         // 'tm' or 'fixed'
   const [contractValue, setContractValue] = useState('');       // INR (rupees, not paise)
   const [scope, setScope] = useState('teamspace');              // 'teamspace' or 'org' — org makes the project visible to every team
+  const [projectType, setProjectType] = useState('tm');         // tm / sprint / services / maintenance — drives budget plan workflow
+  const [durationMonths, setDurationMonths] = useState('');     // for services / maintenance
 
   const openCreateModal = () => {
     setEditingProjectId(null);
@@ -61,6 +63,8 @@ export default function ProjectsPage() {
     setBillingType(p.billingType || 'tm');
     setContractValue(p.contractValueCents ? String(Math.round(p.contractValueCents / 100)) : '');
     setScope(p.scope || 'teamspace');
+    setProjectType(p.type || 'tm');
+    setDurationMonths(p.durationMonths ? String(p.durationMonths) : '');
     setShowCreate(true);
   };
 
@@ -140,7 +144,11 @@ export default function ProjectsPage() {
     if (!name.trim()) return;
     try {
       const contractValueCents = Math.max(0, Math.round(Number(contractValue || 0) * 100));
-      const payload = { name, description, icon, color, billingType, contractValueCents, scope };
+      const payload = {
+        name, description, icon, color, billingType, contractValueCents, scope,
+        type: projectType,
+        durationMonths: Number(durationMonths) || 0,
+      };
       if (editingProjectId) {
         await updateProject(editingProjectId, payload);
       } else {
@@ -149,7 +157,7 @@ export default function ProjectsPage() {
       setShowCreate(false);
       setEditingProjectId(null);
       setName(''); setDescription(''); setIcon('📁'); setColor('#6c5ce7');
-      setBillingType('tm'); setContractValue(''); setScope('teamspace');
+      setBillingType('tm'); setContractValue(''); setScope('teamspace'); setProjectType('tm'); setDurationMonths('');
       fetchAll();
     } catch (err) { console.error(err); }
   };
@@ -441,8 +449,14 @@ export default function ProjectsPage() {
               <div className="project-gallery-body">
                 <h3>{p.name}</h3>
                 <p>{p.description || 'No description'}</p>
-                <div className="project-gallery-footer">
+                <div className="project-gallery-footer" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span>{p.taskCount || 0} tasks</span>
+                  {p.type && (
+                    <span style={{ padding: '1px 7px', borderRadius: 3, fontSize: '0.7rem', fontWeight: 600,
+                      background: p.type === 'tm' ? '#74b9ff' : p.type === 'sprint' ? '#fdcb6e' : p.type === 'services' ? '#00b894' : '#a29bfe',
+                      color: '#1a1a2e',
+                    }}>{ {tm:'T&M', sprint:'Sprint', services:'Services', maintenance:'Maintenance'}[p.type] }</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -570,6 +584,36 @@ export default function ProjectsPage() {
                   ))}
                 </div>
               </div>
+              <div className="form-field">
+                <label className="label">Project type</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+                  {[
+                    { id: 'tm',          icon: '⏱',  title: 'T&M',          desc: 'Plan spans 1-12 months. One approval covers the period.' },
+                    { id: 'sprint',      icon: '🏃', title: 'Sprint',       desc: 'One plan per sprint. Dates = sprint start/end.' },
+                    { id: 'services',    icon: '🧰', title: 'Services',     desc: 'Total duration → split into monthly child plans.' },
+                    { id: 'maintenance', icon: '🔧', title: 'Maintenance',  desc: 'Recurring monthly hours. Auto-rolls forward.' },
+                  ].map(t => (
+                    <button key={t.id} type="button"
+                      onClick={() => setProjectType(t.id)}
+                      className={`btn btn-sm ${projectType === t.id ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{ flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', padding: '8px 10px', height: 'auto' }}>
+                      <span style={{ fontWeight: 600 }}>{t.icon} {t.title}</span>
+                      <span style={{ fontSize: '0.72rem', opacity: 0.8, fontWeight: 400 }}>{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {(projectType === 'services' || projectType === 'maintenance') && (
+                <div className="form-field">
+                  <label className="label">
+                    {projectType === 'services' ? 'Project duration (months)' : 'Monthly bucket horizon (months)'}
+                    <span className="muted" style={{ fontWeight: 400 }}>
+                      {projectType === 'services' ? ' — child plan per month' : ' — recurrence window'}
+                    </span>
+                  </label>
+                  <input className="input" type="number" min="1" max="60" value={durationMonths} onChange={(e) => setDurationMonths(e.target.value)} placeholder="e.g. 6" />
+                </div>
+              )}
               <div className="form-field">
                 <label className="label">Billing type</label>
                 <div style={{ display: 'flex', gap: 8 }}>

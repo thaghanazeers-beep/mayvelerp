@@ -76,3 +76,7 @@ Thumbs.db
 
 # Word lock files (created when doc is open)
 ~$*.docx
+
+# Local Atlas dumps (timestamped)
+db_backup_*/
+db_backup_*.tar.gz

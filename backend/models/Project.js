@@ -30,6 +30,19 @@ const projectSchema = new mongoose.Schema({
   // contractValueCents: client-approved budget ceiling. 0 = no ceiling (open / internal).
   billingType:           { type: String, enum: ['tm', 'fixed'], default: 'tm' },
   contractValueCents:    { type: Number, default: 0 },
+
+  // ── Project type — drives the budget/plan workflow ──
+  //   tm          → single plan covers N months (typically 3-4); one approval covers all
+  //   sprint      → one plan per sprint, period taken from Sprint.start/end
+  //   services    → fixed-duration project; parent plan auto-creates one child plan per month
+  //   maintenance → recurring monthly bucket with same hours every month (auto-rolls)
+  // Backward compat: existing projects default to 'tm'. The plan editor reads
+  // this field to render the correct period inputs.
+  type:                  { type: String, enum: ['tm', 'sprint', 'services', 'maintenance'], default: 'tm', index: true },
+
+  // For services/maintenance: total duration captured on the project so plan
+  // generation knows how many child plans to spin up.
+  durationMonths:        { type: Number, default: 0 },
 });
 
 projectSchema.query.byTeamspace = function (teamspaceId) {
