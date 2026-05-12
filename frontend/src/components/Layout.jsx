@@ -288,12 +288,10 @@ export default function Layout({ children, onToast }) {
         />
       )}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        {/* Logo */}
+        {/* Logo — Mayvel.ai brand logomark + wordmark */}
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </div>
-          <span className="sidebar-title">Mayvel</span>
+          <img src="/mayvel-logo.png" alt="Mayvel" className="sidebar-logo-img" width="32" height="32" />
+          <span className="sidebar-title">mayvel</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -535,12 +533,8 @@ export default function Layout({ children, onToast }) {
                 <button
                   onClick={() => setShowSwitcher(s => !s)}
                   title="View the app as another user"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '6px 10px', background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)', borderRadius: 8,
-                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                  }}
+                  className="btn btn-ghost btn-sm"
+                  style={{ gap: 6 }}
                 >👁️ View as…</button>
                 {showSwitcher && (
                   <div style={{
@@ -578,22 +572,13 @@ export default function Layout({ children, onToast }) {
                 respects owner-only gates everywhere). */}
             {user?.isSuperAdmin && (
               <label
-                className="superadmin-toggle"
+                className={`superadmin-toggle ${superAdminMode ? 'is-super' : 'is-normal'}`}
                 title={superAdminMode ? 'Click to switch to Normal mode (act as a regular admin)' : 'Click to switch back to Super Admin mode'}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                  padding: '6px 10px', background: superAdminMode ? 'linear-gradient(90deg,#6c5ce7,#a29bfe)' : 'var(--bg-elevated)',
-                  color: superAdminMode ? 'white' : 'var(--text)',
-                  borderRadius: 8, fontSize: '0.75rem', fontWeight: 600, userSelect: 'none',
-                  border: '1px solid ' + (superAdminMode ? '#6c5ce7' : 'var(--border)'),
-                  transition: 'all 0.15s ease',
-                }}
               >
                 <input
                   type="checkbox"
                   checked={superAdminMode}
                   onChange={e => setSuperAdminMode(e.target.checked)}
-                  style={{ accentColor: superAdminMode ? 'white' : '#6c5ce7' }}
                 />
                 <span>{superAdminMode ? '👑 Super Admin' : '👤 Normal'}</span>
               </label>

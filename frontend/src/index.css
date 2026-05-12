@@ -98,40 +98,55 @@
   --primary-glow: var(--primary-glow);
 }
 
-/* ── Light Theme ── */
+/* ── Light Theme — Mayvel.ai inspired (clean white + lime accent + black actions) ── */
 [data-theme="light"] {
-  --bg-app: #f6f8fa;
+  --bg-app: #f7f7f8;
   --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.95);
-  --bg-hover: rgba(208, 215, 222, 0.3);
-  --bg-input: #f6f8fa;
-  --bg-selected: rgba(110, 86, 207, 0.06);
+  --bg-card: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-input: #ffffff;
+  --bg-selected: rgba(184, 255, 3, 0.18);
 
-  --primary: #6e56cf;
-  --primary-light: #8b72e8;
-  --primary-dark: #5b45b0;
-  --primary-glow: rgba(110, 86, 207, 0.2);
+  /* Lime still the brand accent, with darker contrast text on it */
+  --primary: #b8ff03;
+  --primary-light: #c8ff3d;
+  --primary-dark: #95d100;
+  --primary-glow: rgba(184, 255, 3, 0.35);
+  --primary-contrast: #050505;
 
-  --accent-green: #1a7f37;
-  --accent-orange: #bf8700;
-  --accent-red: #cf222e;
-  --accent-blue: #0969da;
+  --accent-green: #00a86b;
+  --accent-orange: #f59e0b;
+  --accent-red: #dc2626;
+  --accent-blue: #2563eb;
+  --accent-purple: #7c3aed;
+  --accent-cyan: #0891b2;
 
-  --text: #1f2328;
-  --text-secondary: #656d76;
-  --text-muted: #8b949e;
+  --text: #0a0a0a;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --text-link: #0a0a0a;          /* dark in light mode — lime would be illegible */
 
-  --border: rgba(31, 35, 40, 0.06);
-  --border-default: rgba(31, 35, 40, 0.12);
-  --border-strong: rgba(31, 35, 40, 0.18);
+  --border: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.10);
+  --border-strong: rgba(0, 0, 0, 0.14);
 
-  --shadow-xs: 0 1px 2px rgba(31,35,40,0.04);
-  --shadow-sm: 0 1px 4px rgba(31,35,40,0.06);
-  --shadow-md: 0 4px 12px rgba(31,35,40,0.08);
-  --shadow-lg: 0 8px 24px rgba(31,35,40,0.1);
-  --shadow-xl: 0 16px 48px rgba(31,35,40,0.12);
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.14);
+  --elev-1: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04);
+  --elev-2: 0 2px 6px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.05);
+  --elev-3: 0 8px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.05);
+  --elev-4: 0 16px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
+  --elev-5: 0 24px 48px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.05);
 }
+
+/* In light mode the page-title needs darker color so it's visible */
+[data-theme="light"] .page-title { color: #0a0a0a; }
+[data-theme="light"] .header { background: rgba(255, 255, 255, 0.85); }
+[data-theme="light"] .sidebar { background: #fafafa; }
 
 /* ══════════════════════════════════════════════════════
    RESET & BASE

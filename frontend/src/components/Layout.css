@@ -40,12 +40,19 @@
   box-shadow: 0 4px 14px var(--primary-glow);
 }
 
+.sidebar-logo-img {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
 .sidebar-title {
   font-family: 'Instrument Sans', sans-serif;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  /* Mayvel-style: all-lowercase wordmark */
 }
 
 /* Navigation */
@@ -341,3 +348,36 @@
 }
 .type-option:hover { border-color: var(--border-strong); background: var(--bg-hover); }
 .type-option.active { border-color: var(--primary); background: var(--bg-selected); }
+
+/* ════════════════ SUPER ADMIN TOGGLE PILL ════════════════ */
+.superadmin-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 600; user-select: none;
+  cursor: pointer;
+  transition: background 180ms, border-color 180ms, color 180ms;
+  white-space: nowrap;
+}
+.superadmin-toggle input[type="checkbox"] {
+  width: 14px; height: 14px;
+  accent-color: var(--primary);
+  margin: 0;
+}
+.superadmin-toggle.is-super {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border: 1px solid var(--primary);
+  box-shadow: 0 2px 12px var(--primary-glow);
+}
+.superadmin-toggle.is-super input[type="checkbox"] {
+  accent-color: var(--primary-contrast);
+}
+.superadmin-toggle.is-normal {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+.superadmin-toggle.is-normal:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+}
