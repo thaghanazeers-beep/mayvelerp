@@ -31,6 +31,7 @@ import TimeDashboardPage from './pages/TimeDashboardPage';
 import ProjectPnLPage from './pages/ProjectPnLPage';
 import NotificationsPage from './pages/NotificationsPage';
 import AccessControlPage from './pages/AccessControlPage';
+import GlobalApprovalsPage from './pages/GlobalApprovalsPage';
 import Layout from './components/Layout';
 
 // Sync the URL :teamspaceId param into TeamspaceContext.
@@ -89,6 +90,7 @@ function AppContent() {
         <Route path="/help"                  element={bare(HelpPage)} />
         <Route path="/notifications" element={bare(NotificationsPage)} />
         <Route path="/access"        element={bare(AccessControlPage)} />
+        <Route path="/approvals"     element={bare(GlobalApprovalsPage)} />
 
         {/* Teamspace-scoped */}
         <Route path="/t/:teamspaceId"                              element={ts(TasksPage)} />

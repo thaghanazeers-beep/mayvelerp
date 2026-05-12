@@ -523,10 +523,11 @@ async function audit({ teamspaceId, entityType, entityId, action, before, after,
 }
 
 // Notification helper for plan transitions. Always carry teamspaceId so the
-// per-team sidebar bell can count it; the override of createIfAllowed in
-// server.js sends push + email too.
-async function notify({ type, title, message, taskId, taskTitle, userId, actorName, teamspaceId }) {
-  try { await Notification.createIfAllowed({ type, title, message, taskId, taskTitle, userId, actorName, teamspaceId }); }
+// per-team sidebar bell can count it; carry `link` so the bell click routes
+// to the right page (plans / approvals / week-approvals / allocations etc.).
+// The override of createIfAllowed in server.js sends push + email too.
+async function notify({ type, title, message, taskId, taskTitle, userId, actorName, teamspaceId, link }) {
+  try { await Notification.createIfAllowed({ type, title, message, taskId, taskTitle, userId, actorName, teamspaceId, link }); }
   catch (e) { console.error('notify failed', e.message); }
 }
 
@@ -589,6 +590,7 @@ router.post('/plans/:id/submit', async (req, res) => {
       userId: m.userId.name,
       actorName: req.user?.name,
       teamspaceId: plan.teamspaceId,
+      link: `/t/${plan.teamspaceId}/time/plans/${plan._id}`,
     });
   }
   // Fire workflow trigger so user-defined automations run too
@@ -620,6 +622,7 @@ router.post('/plans/:id/approve', async (req, res) => {
         userId: owner.name,
         actorName: req.user?.name,
         teamspaceId: plan.teamspaceId,
+        link: `/t/${plan.teamspaceId}/time/plans/${plan._id}`,
       });
     }
   }
@@ -655,6 +658,7 @@ router.post('/plans/:id/reject', async (req, res) => {
         userId: owner.name,
         actorName: req.user?.name,
         teamspaceId: plan.teamspaceId,
+        link: `/t/${plan.teamspaceId}/time/plans/${plan._id}`,
       });
     }
   }
@@ -837,6 +841,7 @@ router.post('/plans/:id/allocate', async (req, res) => {
           userId: u.name,
           actorName: req.user?.name,
           teamspaceId: plan.teamspaceId,
+          link: `/t/${plan.teamspaceId}/tasks/${taskDoc.id}`,
         });
       }
     }
@@ -1144,6 +1149,7 @@ router.post('/periods/:id/submit', async (req, res) => {
         userId: owner.name,
         actorName: req.user?.name,
         teamspaceId: s.teamspaceId || period.teamspaceId,
+        link: `/t/${s.teamspaceId || period.teamspaceId}/time/approvals/weeks`,
       });
     }
   }
@@ -1200,6 +1206,7 @@ router.post('/slices/:id/approve', async (req, res) => {
       userId: u.name,
       actorName: req.user?.name,
       teamspaceId: s.teamspaceId,
+      link: `/t/${s.teamspaceId}/time/my-timesheet`,
     });
   }
   ok(res, s);
@@ -1960,6 +1967,7 @@ router.post('/slices/:id/reject', async (req, res) => {
       userId: u.name,
       actorName: req.user?.name,
       teamspaceId: s.teamspaceId,
+      link: `/t/${s.teamspaceId}/time/my-timesheet`,
     });
   }
   ok(res, s);

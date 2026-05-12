@@ -159,17 +159,30 @@ export default function NotificationBell({ onToast }) {
                 key={n._id}
                 onClick={() => {
                   if (!n.read) handleRead(n._id);
-                  // Prefer the notification's own teamspaceId so we land in
-                  // the correct department even if the user is currently
-                  // viewing a different one. Falls back to active.
+                  // Route by notification type so plan/time/allocation/task
+                  // notifs each go to the right page. Newer rows include a
+                  // pre-baked `link`; older rows fall back to type-based
+                  // inference and finally to the tasks list.
                   const targetTs = n.teamspaceId || activeTeamspaceId;
-                  if (n.taskId && targetTs) {
-                    navigate(`/t/${targetTs}/tasks/${n.taskId}`);
-                    setOpen(false);
+                  let target = null;
+                  if (n.link) {
+                    target = n.link;
                   } else if (targetTs) {
-                    navigate(`/t/${targetTs}/tasks`);
-                    setOpen(false);
+                    if (n.type?.startsWith('plan_')) {
+                      target = `/t/${targetTs}/time/plans`;
+                    } else if (n.type === 'time_submitted') {
+                      target = `/t/${targetTs}/time/approvals/weeks`;
+                    } else if (n.type === 'time_approved' || n.type === 'time_rejected' || n.type === 'time_overdue') {
+                      target = `/t/${targetTs}/time/my-timesheet`;
+                    } else if (n.type === 'allocation_created') {
+                      target = n.taskId ? `/t/${targetTs}/tasks/${n.taskId}` : `/t/${targetTs}/time/my-timesheet`;
+                    } else if (n.taskId) {
+                      target = `/t/${targetTs}/tasks/${n.taskId}`;
+                    } else {
+                      target = `/t/${targetTs}/tasks`;
+                    }
                   }
+                  if (target) { navigate(target); setOpen(false); }
                 }}
               >
                 <div className="notif-item-icon">

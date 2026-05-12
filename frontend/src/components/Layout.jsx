@@ -44,6 +44,7 @@ export default function Layout({ children, onToast }) {
   else if (path === '/ai')                        activePage = 'ai';
   else if (path === '/help')                      activePage = 'help';
   else if (path === '/access')                    activePage = 'access';
+  else if (path === '/approvals')                 activePage = 'approvals';
 
   const onNavigate = (page) => {
     const tsId = urlTeamspaceId; // when on /t/:tsId/*
@@ -55,6 +56,7 @@ export default function Layout({ children, onToast }) {
       case 'ai':                navigate('/ai'); break;
       case 'help':              navigate('/help'); break;
       case 'access':            navigate('/access'); break;
+      case 'approvals':         navigate('/approvals'); break;
       case 'tasks':             navigate(`/t/${tsId}/tasks`); break;
       case 'projects':          navigate(`/t/${tsId}/projects`); break;
       case 'sprints':           navigate(`/t/${tsId}/sprints`); break;
@@ -451,10 +453,16 @@ export default function Layout({ children, onToast }) {
           </button>
 
           {isSuperAdminActive && (
-            <button className={`sidebar-link ${activePage === 'access' ? 'active' : ''}`} onClick={() => onNavigate('access')} title="Manage user access levels (Super Admin only)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>Access control</span>
-            </button>
+            <>
+              <button className={`sidebar-link ${activePage === 'approvals' ? 'active' : ''}`} onClick={() => onNavigate('approvals')} title="All pending plan approvals across every workspace (Super Admin only)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                <span>Approvals (all)</span>
+              </button>
+              <button className={`sidebar-link ${activePage === 'access' ? 'active' : ''}`} onClick={() => onNavigate('access')} title="Manage user access levels (Super Admin only)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Access control</span>
+              </button>
+            </>
           )}
         </nav>
 

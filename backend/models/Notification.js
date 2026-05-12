@@ -10,6 +10,10 @@ const notificationSchema = new mongoose.Schema({
   // Which teamspace this notification belongs to. Denormalized so the sidebar
   // can show per-teamspace unread counts without joining through Task.
   teamspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teamspace', index: true },
+  // Optional in-app deep link. Set when the notification points at something
+  // other than a task (a plan, a week slice, an allocations page, etc.).
+  // Frontend routes the bell click to this path when present.
+  link: { type: String },
   actorName: { type: String }, // who triggered the notification
   read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
