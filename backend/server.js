@@ -219,8 +219,11 @@ function emailHtmlFor(title, message, taskId) {
 // email on record. Errors are logged but never thrown.
 function sendNotificationEmail(userName, type, title, message, taskId) {
   if (!transporter || !userName) return;
-  User.findOne({ name: userName }).select('email notificationPrefs').lean().then(target => {
+  User.findOne({ name: userName }).select('email notificationPrefs emailNotificationsEnabled').lean().then(target => {
     if (!target?.email) return;
+    // Master kill switch — respect user's "Email notifications: off" setting.
+    if (target.emailNotificationsEnabled === false) return;
+    // Per-type mute.
     if (target.notificationPrefs && target.notificationPrefs[type] === false) return;
     return transporter.sendMail({
       from: `"Mayvel Task" <${process.env.SMTP_USER || 'no-reply@mayvel.local'}>`,

@@ -29,6 +29,11 @@ const userSchema = new mongoose.Schema({
   // Notification preferences — keys are notification `type` strings.
   // Missing key = enabled (default-on); explicit `false` = muted.
   notificationPrefs: { type: Object, default: {} },
+  // Master kill switch for email notifications. When false, all notification
+  // emails are suppressed for this user (in-app + push still fire so they
+  // don't miss anything; just no inbox spam). Per-type prefs above are AND-ed
+  // with this — easiest way to "go quiet" without flipping every type.
+  emailNotificationsEnabled: { type: Boolean, default: true },
 });
 
 module.exports = mongoose.model('User', userSchema);

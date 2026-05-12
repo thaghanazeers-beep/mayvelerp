@@ -28,6 +28,7 @@ export default function ProfilePage() {
     workingHours: user?.workingHours || { start: '09:00', end: '18:00', weekdaysOnly: true },
     bio:          user?.bio || '',
     notificationPrefs: user?.notificationPrefs || {},
+    emailNotificationsEnabled: user?.emailNotificationsEnabled !== false,  // default-on
   });
   const togglePref = (type) => setExtra(prev => ({
     ...prev,
@@ -188,8 +189,34 @@ export default function ProfilePage() {
           </div>
         </div>
         <h3 style={{ marginTop: 28, marginBottom: 12, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text)' }}>🔔 Notification preferences</h3>
+
+        {/* Master email kill switch. In-app + push notifications are
+            unaffected; only inbox spam is suppressed when this is OFF. */}
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '10px 14px', marginBottom: 12,
+          background: extra.emailNotificationsEnabled ? 'rgba(0, 184, 148, 0.08)' : 'var(--bg-elevated)',
+          border: '1px solid ' + (extra.emailNotificationsEnabled ? '#00b894' : 'var(--border)'),
+          borderRadius: 8, cursor: 'pointer',
+        }}>
+          <input
+            type="checkbox"
+            checked={!!extra.emailNotificationsEnabled}
+            onChange={e => setExtraField('emailNotificationsEnabled', e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: '#00b894' }}
+          />
+          <span style={{ flex: 1 }}>
+            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+              ✉️ Email notifications: {extra.emailNotificationsEnabled ? 'ON' : 'OFF'}
+            </span>
+            <div className="muted" style={{ fontSize: '0.74rem', marginTop: 2 }}>
+              Master switch. When OFF, no notification emails are sent to {extra.email || 'your inbox'} — but the in-app bell and browser push still work, so you won't miss anything.
+            </div>
+          </span>
+        </label>
+
         <p className="muted" style={{ fontSize: '0.78rem', margin: '0 0 12px' }}>
-          Mute categories you don't care about. Toggling off stops creating new in-app notifications of that type for you. Existing ones aren't deleted.
+          Per-category fine control: mute specific types you don't care about. Affects in-app rows, push notifications, and (if email is ON above) emails too.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
           {[
