@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { useToast } from '../context/ToastContext';
 import {
   getPlan, deletePlan, submitPlan, approvePlan, rejectPlan, reopenPlan, allocatePlan,
   getRateBuckets, getTaskTypes, getTeam, getProjects,
@@ -23,6 +24,7 @@ export default function PlanEditorPage() {
   const { planId } = useParams();
   const navigate   = useNavigate();
   const { user }   = useAuth();
+  const toast      = useToast();
   const { activeTeamspaceId } = useTeamspace();
 
   const [plan, setPlan]       = useState(null);
@@ -78,7 +80,10 @@ export default function PlanEditorPage() {
   const handleAddRow = async () => {
     if (!editable) return;
     const defaultBucket = buckets.find(b => b.name === 'Junior') || buckets[0];
-    if (!defaultBucket) return alert('No rate buckets exist; ask an admin to set them up.');
+    if (!defaultBucket) {
+      toast.error('No rate buckets exist for this teamspace. Ask Super Admin to set them up.');
+      return;
+    }
     setBusy(true);
     try {
       await createPlanLine(planId, {
@@ -93,7 +98,8 @@ export default function PlanEditorPage() {
         billRateOverrideCents: project?.defaultBillRateCents || 250000,
       });
       await reload();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+      toast.success('Row added');
+    } catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setBusy(false); }
   };
 
@@ -107,7 +113,7 @@ export default function PlanEditorPage() {
       // Re-fetch plan to refresh totals
       const r2 = await getPlan(planId); setPlan(r2.data.plan); setLines(r2.data.lines);
     } catch (e) {
-      alert(e.response?.data?.error || e.message);
+      toast.error(e.response?.data?.error || e.message);
       reload();
     }
   };
@@ -123,8 +129,11 @@ export default function PlanEditorPage() {
   const handleSubmit = async () => {
     if (!confirm(`Submit "${plan.title}" for approval? Rates will be frozen.`)) return;
     setBusy(true);
-    try { await submitPlan(planId); await reload(); }
-    catch (e) { alert(e.response?.data?.error || e.message); }
+    try {
+      await submitPlan(planId);
+      await reload();
+      toast.success('Plan submitted for approval — owner will be notified');
+    } catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setBusy(false); }
   };
   const handleApprove = async () => {
@@ -145,22 +154,22 @@ export default function PlanEditorPage() {
       } else if (!confirm('Approve this plan?')) return;
     } else if (!confirm('Approve this plan?')) return;
     setBusy(true);
-    try { await approvePlan(planId); await reload(); }
-    catch (e) { alert(e.response?.data?.error || e.message); }
+    try { await approvePlan(planId); await reload(); toast.success('Plan approved'); }
+    catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setBusy(false); }
   };
   const handleReject = async () => {
-    if (rejectReason.trim().length < 10) return alert('Reason must be at least 10 characters');
+    if (rejectReason.trim().length < 10) { toast.error('Reason must be at least 10 characters'); return; }
     setBusy(true);
-    try { await rejectPlan(planId, rejectReason); setShowReject(false); setRejectReason(''); await reload(); }
-    catch (e) { alert(e.response?.data?.error || e.message); }
+    try { await rejectPlan(planId, rejectReason); setShowReject(false); setRejectReason(''); await reload(); toast.success('Plan rejected — owner notified'); }
+    catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setBusy(false); }
   };
   const handleReopen = async () => {
     if (!confirm('Reopen this rejected plan as a draft?')) return;
     setBusy(true);
-    try { await reopenPlan(planId); await reload(); }
-    catch (e) { alert(e.response?.data?.error || e.message); }
+    try { await reopenPlan(planId); await reload(); toast.info('Plan reopened as draft'); }
+    catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setBusy(false); }
   };
   const handleDeletePlan = async () => {
@@ -196,7 +205,7 @@ export default function PlanEditorPage() {
           (async () => {
             const token = localStorage.getItem('token');
             const res = await fetch(exportPlanXlsxUrl(planId), { headers: { Authorization: `Bearer ${token}`, 'x-teamspace-id': activeTeamspaceId } });
-            if (!res.ok) { alert('Export failed: ' + res.status); return; }
+            if (!res.ok) { toast.error('Export failed: ' + res.status); return; }
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -253,9 +262,9 @@ export default function PlanEditorPage() {
             setBusy(true);
             try {
               const r = await allocatePlan(planId);
-              alert(`Allocated: ${r.data.tasksCreated.length} task(s), ${r.data.allocationsCreated.length} weekly bucket(s), ${r.data.skipped.length} skipped.`);
+              toast.success(`Allocated ${r.data.tasksCreated.length} task(s) · ${r.data.allocationsCreated.length} weekly bucket(s)${r.data.skipped.length ? ' · ' + r.data.skipped.length + ' skipped' : ''}`);
               navigate(`/t/${activeTeamspaceId}/time/plans/${planId}/allocations`);
-            } catch (e) { alert(e.response?.data?.error || e.message); }
+            } catch (e) { toast.error(e.response?.data?.error || e.message); }
             finally { setBusy(false); }
           }}>📅 Allocate hours</button>
           <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/t/${activeTeamspaceId}/time/plans/${planId}/allocations`)}>View allocations →</button>

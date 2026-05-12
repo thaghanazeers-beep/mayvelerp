@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { TeamspaceProvider, useTeamspace } from './context/TeamspaceContext';
 import { OrgProvider } from './context/OrgContext';
+import { ToastProvider } from './context/ToastContext';
 import { useToast, ToastContainer } from './components/Toast';
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
@@ -129,13 +130,15 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <TeamspaceProvider>
-          <OrgProvider>
-            <AppContent />
-          </OrgProvider>
-        </TeamspaceProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <TeamspaceProvider>
+            <OrgProvider>
+              <AppContent />
+            </OrgProvider>
+          </TeamspaceProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

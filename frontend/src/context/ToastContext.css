@@ -1,0 +1,44 @@
+.toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  pointer-events: auto;
+  animation: toast-in 0.18s ease-out;
+  max-width: 380px;
+}
+.toast-pill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+.toast-pill-success { background: #00b894; color: white; }
+.toast-pill-success .toast-pill-icon { background: rgba(255,255,255,0.25); }
+.toast-pill-error   { background: #e74c3c; color: white; }
+.toast-pill-error   .toast-pill-icon { background: rgba(255,255,255,0.25); }
+.toast-pill-info    { background: #6c5ce7; color: white; }
+.toast-pill-info    .toast-pill-icon { background: rgba(255,255,255,0.25); }
+@keyframes toast-in {
+  from { transform: translateY(-8px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

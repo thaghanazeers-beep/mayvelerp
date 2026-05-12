@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { useToast } from '../context/ToastContext';
 import { getPlans, createPlan, getProjects, formatINR } from '../api';
 import './PlanPages.css';
 
@@ -20,6 +21,7 @@ const STATUS_BADGE = {
 export default function PlanListPage() {
   const { activeTeamspaceId } = useTeamspace();
   const navigate = useNavigate();
+  const toast = useToast();
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [plans, setPlans] = useState([]);
@@ -69,9 +71,11 @@ export default function PlanListPage() {
       if (newTitle.trim()) payload.title = newTitle.trim();
       const r = await createPlan(payload);
       setShowNew(false); setNewTitle('');
+      toast.success('Draft plan created — add rows and submit when ready');
       navigate(`/t/${activeTeamspaceId}/time/plans/${r.data._id}`);
     } catch (err) {
       setError(err.response?.data?.error || err.message);
+      toast.error(err.response?.data?.error || err.message);
     } finally { setCreating(false); }
   };
 
