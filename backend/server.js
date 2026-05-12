@@ -470,7 +470,9 @@ app.post('/api/teamspaces/personal', authenticate, async (req, res) => {
 });
 
 // ==================== PASSWORD RESET ====================
-const APP_URL = process.env.APP_URL || 'http://localhost:5173';
+// Production frontend URL. Defaults to the live Netlify site so emails never
+// link to localhost even if the APP_URL env var is unset on Render.
+const APP_URL = process.env.APP_URL || 'https://mayvelerp.netlify.app';
 
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {
@@ -713,7 +715,7 @@ app.post('/api/team/invite', requireTeamspaceMembership, requireRole('admin'), a
                 <p><strong>Role:</strong> ${role || 'Member'}</p>
               </div>
               ${isNewUser ? `<p>Please change your password after logging in.</p>` : ''}
-              <a href="http://localhost:5173" style="display: inline-block; background: #6c5ce7; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Open Mayvel Task</a>
+              <a href="${APP_URL}" style="display: inline-block; background: #b8ff03; color: #050505; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 700;">Open Mayvel Task</a>
             </div>
           `,
         });
@@ -2034,7 +2036,7 @@ async function weeklyDigestTick() {
           ` : ''}
           ${unreadCount ? `<p style="margin:16px 0 6px;font-size:14px">🔔 You have <strong>${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}</strong>.</p>` : ''}
           <p style="margin:24px 0 0;font-size:12px;color:#888">
-            <a href="${process.env.APP_URL || 'http://localhost:5173'}" style="color:#6c5ce7">Open Mayvel Task →</a><br>
+            <a href="${APP_URL}" style="color:#b8ff03;font-weight:600">Open Mayvel Task →</a><br>
             Don't want these? Profile → Notification preferences → toggle "Weekly digest" off.
           </p>
         </div>`;
