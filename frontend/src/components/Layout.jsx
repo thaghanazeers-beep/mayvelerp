@@ -336,7 +336,15 @@ export default function Layout({ children, onToast }) {
                     return (
                       <button
                         className="ts-tree-bell"
-                        onClick={(e) => { e.stopPropagation(); navigate('/notifications'); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Jump into the teamspace AND open its tasks list — that's where
+                          // most unread items belong. The teamspace-scoped active state
+                          // also makes the bell badge for THIS teamspace start clearing
+                          // as items get read.
+                          setActiveTeamspaceId(ts._id);
+                          navigate(`/t/${ts._id}/tasks`);
+                        }}
                         title={`${count} unread notification${count === 1 ? '' : 's'} in ${ts.name}`}
                         style={{
                           position: 'relative', display: 'flex', alignItems: 'center',

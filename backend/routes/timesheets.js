@@ -508,9 +508,11 @@ async function audit({ teamspaceId, entityType, entityId, action, before, after,
   } catch (e) { console.error('audit log failed', e.message); }
 }
 
-// Notification helper for plan transitions
-async function notify({ type, title, message, taskId, taskTitle, userId, actorName }) {
-  try { await Notification.createIfAllowed({ type, title, message, taskId, taskTitle, userId, actorName }); }
+// Notification helper for plan transitions. Always carry teamspaceId so the
+// per-team sidebar bell can count it; the override of createIfAllowed in
+// server.js sends push + email too.
+async function notify({ type, title, message, taskId, taskTitle, userId, actorName, teamspaceId }) {
+  try { await Notification.createIfAllowed({ type, title, message, taskId, taskTitle, userId, actorName, teamspaceId }); }
   catch (e) { console.error('notify failed', e.message); }
 }
 
@@ -572,6 +574,7 @@ router.post('/plans/:id/submit', async (req, res) => {
       message: `${req.user?.name || 'Owner'} submitted "${plan.title}" — total ₹${(plan.totalCostCents/100).toLocaleString('en-IN')} across ${lines.length} line${lines.length===1?'':'s'}`,
       userId: m.userId.name,
       actorName: req.user?.name,
+      teamspaceId: plan.teamspaceId,
     });
   }
   // Fire workflow trigger so user-defined automations run too
@@ -602,6 +605,7 @@ router.post('/plans/:id/approve', async (req, res) => {
         message: `Your plan "${plan.title}" was approved by ${req.user?.name || 'Admin'}. You can now allocate hours to users.`,
         userId: owner.name,
         actorName: req.user?.name,
+        teamspaceId: plan.teamspaceId,
       });
     }
   }
@@ -636,6 +640,7 @@ router.post('/plans/:id/reject', async (req, res) => {
         message: `Your plan "${plan.title}" was rejected by ${req.user?.name || 'Admin'}. Reason: ${reason}`,
         userId: owner.name,
         actorName: req.user?.name,
+        teamspaceId: plan.teamspaceId,
       });
     }
   }
@@ -817,6 +822,7 @@ router.post('/plans/:id/allocate', async (req, res) => {
           taskTitle: taskDoc.title,
           userId: u.name,
           actorName: req.user?.name,
+          teamspaceId: plan.teamspaceId,
         });
       }
     }
@@ -1123,6 +1129,7 @@ router.post('/periods/:id/submit', async (req, res) => {
         message: `${req.user?.name || 'A user'} submitted ${(s.totalMinutes/60).toFixed(1)}h on ${proj?.name || 'a project'} for week of ${period.weekStart.toISOString().slice(0,10)}`,
         userId: owner.name,
         actorName: req.user?.name,
+        teamspaceId: s.teamspaceId || period.teamspaceId,
       });
     }
   }
@@ -1178,6 +1185,7 @@ router.post('/slices/:id/approve', async (req, res) => {
       message: `Your ${(s.totalMinutes/60).toFixed(1)}h on ${proj?.name || 'a project'} for week of ${s.weekStart.toISOString().slice(0,10)} was approved by ${req.user?.name || 'Owner'}`,
       userId: u.name,
       actorName: req.user?.name,
+      teamspaceId: s.teamspaceId,
     });
   }
   ok(res, s);
@@ -1937,6 +1945,7 @@ router.post('/slices/:id/reject', async (req, res) => {
       message: `Your ${(s.totalMinutes/60).toFixed(1)}h on ${proj?.name || 'a project'} for week of ${s.weekStart.toISOString().slice(0,10)} was rejected by ${req.user?.name || 'Owner'}. Reason: ${reason}`,
       userId: u.name,
       actorName: req.user?.name,
+      teamspaceId: s.teamspaceId,
     });
   }
   ok(res, s);

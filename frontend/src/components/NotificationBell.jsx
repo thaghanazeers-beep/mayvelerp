@@ -159,8 +159,15 @@ export default function NotificationBell({ onToast }) {
                 key={n._id}
                 onClick={() => {
                   if (!n.read) handleRead(n._id);
-                  if (n.taskId && activeTeamspaceId) {
-                    navigate(`/t/${activeTeamspaceId}/tasks/${n.taskId}`);
+                  // Prefer the notification's own teamspaceId so we land in
+                  // the correct department even if the user is currently
+                  // viewing a different one. Falls back to active.
+                  const targetTs = n.teamspaceId || activeTeamspaceId;
+                  if (n.taskId && targetTs) {
+                    navigate(`/t/${targetTs}/tasks/${n.taskId}`);
+                    setOpen(false);
+                  } else if (targetTs) {
+                    navigate(`/t/${targetTs}/tasks`);
                     setOpen(false);
                   }
                 }}
