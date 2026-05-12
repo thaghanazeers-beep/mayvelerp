@@ -7,7 +7,7 @@ import NotificationBell from './NotificationBell';
 import WelcomeModal from './WelcomeModal';
 import CommandPalette from './CommandPalette';
 import './AiChat.css';      // for the .ai-chat-launcher button styles
-import { getTeamspaces, createTeamspace, createPersonalTeamspace, signedFileUrl, getUnreadByTeamspace } from '../api';
+import { getTeamspaces, createTeamspace, createPersonalTeamspace, signedFileUrl, getUnreadByTeamspace, listAllUsers, impersonateUser } from '../api';
 import './Layout.css';
 
 export default function Layout({ children, onToast }) {
@@ -70,7 +70,28 @@ export default function Layout({ children, onToast }) {
     }
   };
 
-  const { user, logout, superAdminMode, setSuperAdminMode, isSuperAdminActive } = useAuth();
+  const { user, logout, superAdminMode, setSuperAdminMode, isSuperAdminActive, impersonating, impersonateAs, revertImpersonation } = useAuth();
+  // Cached list of every user (only fetched for SuperAdmin) so the switcher
+  // dropdown doesn't have to round-trip every render.
+  const [allUsersCache, setAllUsersCache] = useState([]);
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  useEffect(() => {
+    if (!user?.isSuperAdmin || impersonating) return;
+    listAllUsers().then(r => setAllUsersCache(r.data || [])).catch(() => {});
+  }, [user?.isSuperAdmin, impersonating]);
+  const handleImpersonate = async (targetId) => {
+    try {
+      const r = await impersonateUser(targetId);
+      impersonateAs(r.data.user, r.data.token);
+      setShowSwitcher(false);
+      // Force a full reload so every context / cached fetch starts clean as the new user.
+      window.location.href = '/';
+    } catch (e) { alert(e.response?.data?.error || e.message); }
+  };
+  const handleRevert = () => {
+    revertImpersonation();
+    window.location.href = '/';
+  };
   const themeCtx = useTheme();
   const theme = themeCtx?.theme || 'dark';
   const toggleTheme = themeCtx?.toggleTheme || (() => {});
@@ -431,6 +452,67 @@ export default function Layout({ children, onToast }) {
             <h2 className="page-title">{pageTitles[activePage] || ''}</h2>
           </div>
           <div className="header-right">
+            {/* If currently impersonating, show a banner with a "Switch back" button.
+                Original SuperAdmin info comes from sessionStorage (set when the
+                impersonate call returns). */}
+            {impersonating && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '6px 12px', background: '#fdcb6e', color: '#222',
+                borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
+              }}>
+                <span>👁️ Viewing as {user?.name}</span>
+                <button
+                  onClick={handleRevert}
+                  style={{ background: '#222', color: '#fdcb6e', border: 'none', padding: '4px 10px', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}
+                >Switch back to {impersonating.name}</button>
+              </div>
+            )}
+
+            {/* SuperAdmin-only: user switcher dropdown. Hidden while already
+                impersonating (revert first to switch to a different user). */}
+            {user?.isSuperAdmin && !impersonating && (
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowSwitcher(s => !s)}
+                  title="View the app as another user"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '6px 10px', background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border)', borderRadius: 8,
+                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >👁️ View as…</button>
+                {showSwitcher && (
+                  <div style={{
+                    position: 'absolute', top: '110%', right: 0, zIndex: 100,
+                    background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                    borderRadius: 8, padding: 6, minWidth: 260, maxHeight: 360, overflowY: 'auto',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                  }}>
+                    <div style={{ fontSize: '0.7rem', padding: '4px 8px', color: 'var(--text-secondary)' }}>Switch to view as…</div>
+                    {allUsersCache.filter(u => u._id !== user._id).map(u => (
+                      <button key={u._id}
+                        onClick={() => handleImpersonate(u._id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                          padding: '8px 10px', border: 'none', background: 'none',
+                          textAlign: 'left', cursor: 'pointer', borderRadius: 4,
+                          color: 'var(--text)', fontSize: '0.8rem',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      >
+                        <span style={{ flex: 1 }}>{u.name}</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{u.email}</span>
+                      </button>
+                    ))}
+                    {allUsersCache.length === 0 && <div className="muted" style={{ padding: 8, fontSize: '0.75rem' }}>Loading…</div>}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* SuperAdmin-only toggle: lets workspace owner switch between full
                 Super Admin view (sees + manages every teamspace) and Normal view
                 (behaves like any regular admin — only their own teamspaces +

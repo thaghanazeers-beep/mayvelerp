@@ -114,6 +114,9 @@ export const listAllMemberships  = ()             => API.get('/admin/memberships
 export const upsertMembership    = (data)         => API.post('/admin/memberships', data);  // {userId, teamspaceId, role}
 export const updateMembershipRole = (id, role)    => API.put(`/admin/memberships/${id}`, { role });
 export const removeMembership    = (id)           => API.delete(`/admin/memberships/${id}`);
+
+// Super Admin — impersonate a user (returns a new {user, token} pair for them)
+export const impersonateUser     = (userId)       => API.post('/admin/impersonate', { userId });
 export const uploadAvatar = (id, file) => {
   const formData = new FormData();
   formData.append('avatar', file);

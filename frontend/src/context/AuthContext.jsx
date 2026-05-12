@@ -39,6 +39,8 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('token');
+    sessionStorage.removeItem('mayvel_originalUser');
+    sessionStorage.removeItem('mayvel_originalToken');
   };
 
   // Effective check used everywhere: only true when the user IS a super admin
@@ -46,8 +48,36 @@ export function AuthProvider({ children }) {
   // checking `user.isSuperAdmin` directly so the normal-mode switch works.
   const isSuperAdminActive = !!(user?.isSuperAdmin && superAdminMode);
 
+  // Impersonation: SuperAdmin "views as" another user. We stash the original
+  // user + token in sessionStorage (not localStorage — auto-cleared on tab
+  // close so we don't get stuck impersonating). Reverting restores them.
+  const originalUserJSON = typeof window !== 'undefined' ? sessionStorage.getItem('mayvel_originalUser') : null;
+  const impersonating = originalUserJSON ? JSON.parse(originalUserJSON) : null;
+
+  const impersonateAs = (targetUser, targetToken) => {
+    // Save original only the first time; if already impersonating, don't overwrite.
+    if (!sessionStorage.getItem('mayvel_originalUser')) {
+      sessionStorage.setItem('mayvel_originalUser', JSON.stringify(user));
+      sessionStorage.setItem('mayvel_originalToken', localStorage.getItem('token') || '');
+    }
+    setUser(targetUser);
+    if (targetToken) localStorage.setItem('token', targetToken);
+  };
+  const revertImpersonation = () => {
+    const origUser  = sessionStorage.getItem('mayvel_originalUser');
+    const origToken = sessionStorage.getItem('mayvel_originalToken');
+    if (origUser)  setUser(JSON.parse(origUser));
+    if (origToken) localStorage.setItem('token', origToken);
+    sessionStorage.removeItem('mayvel_originalUser');
+    sessionStorage.removeItem('mayvel_originalToken');
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loginUser, logout, superAdminMode, setSuperAdminMode, isSuperAdminActive }}>
+    <AuthContext.Provider value={{
+      user, loginUser, logout,
+      superAdminMode, setSuperAdminMode, isSuperAdminActive,
+      impersonating, impersonateAs, revertImpersonation,
+    }}>
       {children}
     </AuthContext.Provider>
   );

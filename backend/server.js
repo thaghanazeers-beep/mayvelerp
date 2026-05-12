@@ -406,6 +406,24 @@ app.delete('/api/admin/memberships/:id', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/admin/impersonate { userId }  → returns { user, token } for that
+// user, signed as the target. Used by SuperAdmin to "log in as <user>" to
+// debug what they're seeing. The frontend stashes the original token and can
+// restore it when they're done.
+app.post('/api/admin/impersonate', authenticate, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.userId).select('isSuperAdmin name email').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const { userId } = req.body || {};
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const target = await User.findById(userId);
+    if (!target) return res.status(404).json({ error: 'User not found' });
+    const token = generateToken(target);
+    console.log('[impersonate] ' + me.email + ' → ' + target.email);
+    res.json({ user: target, token });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
