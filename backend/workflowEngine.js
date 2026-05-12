@@ -31,7 +31,12 @@ class WorkflowEngine {
   async fire(triggerType, entity, context = {}) {
     const isPlan = WorkflowEngine.PLAN_TRIGGERS.has(triggerType);
     try {
-      const workflows = await Workflow.find({ enabled: true, 'trigger.type': triggerType });
+      // Workflows are teamspace-scoped: only run workflows whose teamspaceId
+      // matches the entity's teamspaceId. Pre-fix, a Product Design workflow
+      // would fire on a Marketing task because the find ignored teamspace.
+      const baseFilter = { enabled: true, 'trigger.type': triggerType };
+      if (entity?.teamspaceId) baseFilter.teamspaceId = entity.teamspaceId;
+      const workflows = await Workflow.find(baseFilter);
       for (const workflow of workflows) {
         try {
           if (!this._matchTriggerConfig(workflow.trigger, entity, context, isPlan)) continue;
@@ -199,13 +204,34 @@ class WorkflowEngine {
 
     let targetUsers = [];
     if (config.sendTo === 'admins') {
-      const admins = await User.find({ role: 'Admin' }, 'name');
-      targetUsers = admins.map(a => a.name);
+      // Scope admins to the entity's teamspace — used to be a global
+      // `User.find({ role: 'Admin' })` which fanned notifications out to
+      // every Admin in the org regardless of which teamspace owned the entity.
+      const TeamspaceMembership = require('./models/TeamspaceMembership');
+      if (entity?.teamspaceId) {
+        const mems = await TeamspaceMembership.find({
+          teamspaceId: entity.teamspaceId, role: 'admin', status: 'active',
+        }).populate('userId', 'name');
+        targetUsers = mems.map(m => m.userId?.name).filter(Boolean);
+      } else {
+        const admins = await User.find({ role: 'Admin' }, 'name');
+        targetUsers = admins.map(a => a.name);
+      }
     } else if (config.sendTo === 'specific' && config.targetUser) {
       targetUsers = [config.targetUser];
     } else if (config.sendTo === 'all') {
-      const allUsers = await User.find({}, 'name');
-      targetUsers = allUsers.map(u => u.name);
+      // 'all' was previously every user org-wide. Scope to the entity's
+      // teamspace members so cross-tenant fan-out doesn't happen.
+      const TeamspaceMembership = require('./models/TeamspaceMembership');
+      if (entity?.teamspaceId) {
+        const mems = await TeamspaceMembership.find({
+          teamspaceId: entity.teamspaceId, status: 'active',
+        }).populate('userId', 'name');
+        targetUsers = mems.map(m => m.userId?.name).filter(Boolean);
+      } else {
+        const allUsers = await User.find({}, 'name');
+        targetUsers = allUsers.map(u => u.name);
+      }
     } else if (!isPlan) {
       // Task-only recipients
       if (config.sendTo === 'assignee' && entity.assignee) targetUsers = [entity.assignee];

@@ -83,7 +83,12 @@ if (createdPlanId) {
 //            against another user's allocation ───────────────────────────────
 {
   // Find any allocation for Thagha (we'll try to create as Thagha — should succeed)
-  const alloc = await db.collection('allocations').findOne({ userId: thagha._id, status: 'active' });
+  // Find an allocation with at least 1 hour of headroom (so the smoke test
+  // can be re-run without exhausting any one bucket).
+  const alloc = await db.collection('allocations').findOne({
+    userId: thagha._id, status: 'active',
+    $expr: { $gt: [{ $subtract: ['$allocatedHours', '$consumedHours'] }, 1] },
+  });
   if (alloc) {
     const today = new Date();
     while (today.getDay() === 0 || today.getDay() === 6) today.setDate(today.getDate() - 1);
@@ -162,6 +167,32 @@ if (createdPlanId) {
   const r = await api(Tpooja, `/api/time/plans/${id}/approve`, { method: 'POST', headers: HDR });
   log('B025 plan self-approval blocked', r.status === 403, `status=${r.status}`);
   await db.collection('projecthoursplans').deleteOne({ _id: id });
+}
+
+// ─── FLOW 6: Workflow no-cross-teamspace fan-out (B052) ─────────────────────
+{
+  // Create a fake Marketing-teamspace task and update its status to In Review.
+  // Workflows are all scoped to Product Design (teamspaceId=...0d9f). The
+  // post-fix engine should NOT fire any workflow for a Marketing task.
+  const MKTG = '6a02d1a04c636873299977db';
+  const mktgProj = await db.collection('projects').findOne({ teamspaceId: new mongoose.Types.ObjectId(MKTG) }) ||
+                   await db.collection('projects').findOne({});
+  // Create task as Pooja (Marketing owner) — has billable alloc set up? Skip allocation check by being Pooja (Admin) → backend bypass.
+  const taskId = 'task_wftest_' + Date.now();
+  await db.collection('tasks').insertOne({
+    id: taskId, title: '[smoke] wf scope', status: 'In Progress', assignee: 'Pooja Sridhar',
+    createdBy: 'Pooja Sridhar', projectId: mktgProj._id,
+    teamspaceId: new mongoose.Types.ObjectId(MKTG), createdDate: new Date(),
+  });
+  const beforeWf = await db.collection('workflowlogs').countDocuments({ taskId });
+  // Update to In Review as Pooja (workspace admin)
+  await api(Tpooja, `/api/tasks/${taskId}`, { method: 'PUT', body: JSON.stringify({ status: 'In Review', updatedBy: 'Pooja Sridhar' }), headers: { 'x-teamspace-id': MKTG } });
+  await new Promise(r => setTimeout(r, 400));
+  const afterWf = await db.collection('workflowlogs').countDocuments({ taskId });
+  log('B052 workflow not cross-teamspace', afterWf === beforeWf, `wfLogs before=${beforeWf} after=${afterWf}`);
+  // cleanup
+  await db.collection('tasks').deleteOne({ id: taskId });
+  await db.collection('notifications').deleteMany({ taskId });
 }
 
 // ─── FLOW 5: Task assignment notification (B011 check) ───────────────────────

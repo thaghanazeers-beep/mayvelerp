@@ -251,6 +251,25 @@ A one-liner is fine. I'll repro and fill in details.
 
 ---
 
+### B052 — Workflows fired across teamspaces (Marketing tasks triggered Product Design workflows)
+- **Status**: FIXED
+- **Severity**: P0
+- **Where**: [backend/workflowEngine.js:34](backend/workflowEngine.js#L34) (the `fire()` query); fan-out at `_actionSendNotification`
+- **What's wrong**: `Workflow.find({ enabled: true, 'trigger.type': triggerType })` had no teamspace filter. Every workflow in the DB fired for every entity, so a Marketing task moving to In Review fan-out via the Product Design "Task ready for review" workflow → notification email/push sent to every global Admin org-wide.
+- **Reported by**: Suha (suha.a@mayvel.ai). She received plan/task notifications for teamspaces she isn't even in.
+- **Fix**: `fire()` now adds `baseFilter.teamspaceId = entity.teamspaceId` so a workflow only runs for entities in its own teamspace. The matching `_actionSendNotification` recipient resolution for `sendTo: 'admins'` and `sendTo: 'all'` was also rewritten — admins/all are now resolved via `TeamspaceMembership` of the entity's teamspace instead of a global `User.find({ role: 'Admin' })`.
+
+---
+
+### B053 — TasksPage let global Admins flip In Review → Completed/Rejected (UI side of d58a1a4 backend rule)
+- **Status**: FIXED
+- **Severity**: P0
+- **Where**: [frontend/src/pages/TasksPage.jsx:270-292](frontend/src/pages/TasksPage.jsx#L270-L292)
+- **What's wrong**: `canChangeStatusTo` returned true for any global `role === 'Admin'`. Suha (Admin globally, member of Product Design + admin of Marketing) could pick Completed/Rejected from the dropdown on the board view. TaskDetailPage's gate was correctly tighter, but the board view bypassed it. Backend `PUT /api/tasks/:id` would 403 the request — but only after the click.
+- **Fix**: New `canApproveRejectTask(task)` looks up the task's teamspace owner in `useTeamspace().teamspaces` and requires `user._id === ownerId` OR `user.isSuperAdmin`. `canChangeStatusTo` delegates to it for Completed/Rejected transitions.
+
+---
+
 ## Fixed (recent)
 
 - `done` Plan-approved notification was navigating to `/tasks` — `bc976e7`

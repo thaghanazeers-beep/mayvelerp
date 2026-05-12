@@ -29,7 +29,7 @@ const STATUS_BADGE = {
 
 export default function TasksPage() {
   const { user } = useAuth();
-  const { activeTeamspaceId, setActiveTeamspaceId } = useTeamspace();
+  const { activeTeamspaceId, setActiveTeamspaceId, teamspaces } = useTeamspace();
   const toast = useToast();
   const navigate = useNavigate();
   const params = useParams();
@@ -268,7 +268,21 @@ export default function TasksPage() {
   };
 
   const isAdminOrOwner = user?.role === 'Admin' || user?.role === 'Team Owner';
-  
+  const isSuperAdminActive = user?.isSuperAdmin === true;
+
+  // Only the OWNER of a task's teamspace (plus Super Admin) may flip a task
+  // from In Review to Completed/Rejected. Workspace admins (global role
+  // 'Admin') are NOT allowed — too broad in this data set.
+  const teamspaceOwnerOf = (task) => {
+    const ts = teamspaces?.find(t => String(t._id) === String(task?.teamspaceId));
+    return ts?.ownerId ? String(ts.ownerId) : null;
+  };
+  const canApproveRejectTask = (task) => {
+    if (isSuperAdminActive) return true;
+    const ownerId = teamspaceOwnerOf(task);
+    return ownerId && String(user?._id) === ownerId;
+  };
+
   const canEditTask = (task) => {
     if (isAdminOrOwner) return true;
     return task.assignee === user?.name;
@@ -276,8 +290,10 @@ export default function TasksPage() {
 
   const canChangeStatusTo = (task, newStatus) => {
     if (!canEditTask(task)) return false;
+    if (newStatus === 'Completed' || newStatus === 'Rejected') {
+      return canApproveRejectTask(task);
+    }
     if (isAdminOrOwner) return true;
-    if (newStatus === 'Completed' || newStatus === 'Rejected') return false;
     return true;
   };
 
