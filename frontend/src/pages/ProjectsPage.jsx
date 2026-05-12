@@ -606,15 +606,9 @@ export default function ProjectsPage() {
                   Client-approved budget. Plans whose committed cost crosses this trigger an overrun warning.
                 </div>
               </div>
-              <div className="form-field">
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={scope === 'org'} onChange={(e) => setScope(e.target.checked ? 'org' : 'teamspace')} />
-                  <span className="label" style={{ margin: 0 }}>Org-wide project</span>
-                </label>
-                <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
-                  Check this for projects (like "Seyo") where multiple departments contribute — Design, Dev, and Testing each get their own tasks + budget approval within the same project. Leave unchecked for projects owned by a single team.
-                </div>
-              </div>
+              {/* Note: projects are now visible to every teamspace by default,
+                  so the "org-wide" toggle was removed. Each department still
+                  contributes its own tasks + budget within the project. */}
               <div className="modal-actions">
                 <div style={{ flex: 1 }} />
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowCreate(false)}>Cancel</button>

@@ -796,13 +796,12 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
 // ==================== PROJECT ROUTES ====================
 app.get('/api/projects', async (req, res) => {
   try {
-    const { teamspaceId } = req.query;
-    if (!teamspaceId || teamspaceId === 'undefined') return res.json([]);
-    // Show: (a) projects scoped to this teamspace, OR (b) any project marked
-    // `scope: 'org'` — those are visible across every teamspace so multiple
-    // departments can contribute tasks + budgets to the same project.
-    const filter = { $or: [ { teamspaceId }, { scope: 'org' } ] };
-    const projects = await Project.find(filter).sort({ createdDate: -1 });
+    // Projects are org-wide: every teamspace sees every project. Departments
+    // (teamspaces) contribute their own tasks + budgets to each project.
+    // The `teamspaceId` query param is accepted for backward compatibility but
+    // no longer used for filtering (skip the empty-array shortcut so callers
+    // without a tsId still get the full list).
+    const projects = await Project.find({}).sort({ createdDate: -1 });
     const projectsWithCounts = await Promise.all(projects.map(async (p) => {
       const taskCount = await Task.countDocuments({ projectId: p._id.toString() });
       return { ...p.toObject(), taskCount };

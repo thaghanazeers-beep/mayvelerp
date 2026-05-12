@@ -416,15 +416,21 @@ export default function Layout({ children, onToast }) {
             <span>AI Assistant</span>
           </button>
 
-          <button className={`sidebar-link ${activePage === 'organization' ? 'active' : ''}`} onClick={() => onNavigate('organization')}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="8" y="2" width="8" height="5" rx="1"/><rect x="1" y="15" width="7" height="5" rx="1"/><rect x="16" y="15" width="7" height="5" rx="1"/><path d="M12 7v4M5.5 15v-1a6.5 6.5 0 0113 0v1"/></svg>
-            <span>Organization</span>
-          </button>
+          {/* Organization chart + Members are admin-only. Visible to global
+              Admins and SuperAdmin in elevated mode; hidden from Members. */}
+          {(user?.role === 'Admin' || isSuperAdminActive) && (
+            <>
+              <button className={`sidebar-link ${activePage === 'organization' ? 'active' : ''}`} onClick={() => onNavigate('organization')}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="8" y="2" width="8" height="5" rx="1"/><rect x="1" y="15" width="7" height="5" rx="1"/><rect x="16" y="15" width="7" height="5" rx="1"/><path d="M12 7v4M5.5 15v-1a6.5 6.5 0 0113 0v1"/></svg>
+                <span>Organization</span>
+              </button>
 
-          <button className={`sidebar-link ${activePage === 'org-members' ? 'active' : ''}`} onClick={() => onNavigate('org-members')} style={{ paddingLeft: 36 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-            <span>Members</span>
-          </button>
+              <button className={`sidebar-link ${activePage === 'org-members' ? 'active' : ''}`} onClick={() => onNavigate('org-members')} style={{ paddingLeft: 36 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                <span>Members</span>
+              </button>
+            </>
+          )}
 
           <button className={`sidebar-link ${activePage === 'profile' ? 'active' : ''}`} onClick={() => onNavigate('profile')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
