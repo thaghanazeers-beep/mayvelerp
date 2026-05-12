@@ -183,6 +183,8 @@ export const updateTimeEntry   = (id, data)=> API.put(`/time/entries/${id}`, dat
 export const deleteTimeEntry   = (id)      => API.delete(`/time/entries/${id}`);
 
 export const allocatePlan      = (id)              => API.post(`/time/plans/${id}/allocate`);
+export const spawnChildPlans   = (id)              => API.post(`/time/plans/${id}/spawn-children`);
+export const enableRecurrence  = (id, monthlyHours)=> API.post(`/time/plans/${id}/enable-recurrence`, { monthlyHours });
 export const getPlanAllocations= (planId)          => API.get(`/time/plans/${planId}/allocations`);
 export const getAllocations    = (params)          => API.get('/time/allocations', { params: params || {} });
 export const updateAllocation  = (id, data)        => API.put(`/time/allocations/${id}`, data);

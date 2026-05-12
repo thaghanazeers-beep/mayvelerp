@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import {
   getPlan, deletePlan, submitPlan, approvePlan, rejectPlan, reopenPlan, allocatePlan,
   getRateBuckets, getTaskTypes, getTeam, getProjects, getPlanAudit,
+  spawnChildPlans, enableRecurrence,
   createPlanLine, updatePlanLine, deletePlanLine, formatINR, exportPlanXlsxUrl,
 } from '../api';
 import './PlanPages.css';
@@ -201,6 +202,31 @@ export default function PlanEditorPage() {
         {canApprove && <button className="btn btn-primary btn-sm" disabled={busy} onClick={handleApprove}>✅ Approve</button>}
         {canApprove && <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setShowReject(true)}>❌ Reject</button>}
         {canReopen  && <button className="btn btn-ghost btn-sm" disabled={busy} onClick={handleReopen}>🔄 Reopen as Draft</button>}
+
+        {/* Services parent plan: spawn one child plan per month of the project's duration. */}
+        {project?.type === 'services' && !plan.parentPlanId && (canSubmit || isAdmin) && (
+          <button className="btn btn-ghost btn-sm" disabled={busy} title={`Create ${project.durationMonths || 1} monthly child plan(s)`}
+            onClick={async () => {
+              setBusy(true);
+              try { const r = await spawnChildPlans(planId); toast.success(`Created ${r.data.created} child plan(s)`); }
+              catch (e) { toast.error(e.response?.data?.error || e.message); }
+              finally { setBusy(false); }
+            }}>🧰 Spawn monthly children</button>
+        )}
+
+        {/* Maintenance plan: turn it into the recurring template. The monthly
+            tick will spawn next month's plan automatically. */}
+        {project?.type === 'maintenance' && !plan.recurrence?.active && (canSubmit || isAdmin) && (
+          <button className="btn btn-ghost btn-sm" disabled={busy} title="Make this plan the monthly recurrence template"
+            onClick={async () => {
+              const hours = prompt('Monthly hours for the maintenance bucket?', plan.totalPlannedHours || 40);
+              if (!hours) return;
+              setBusy(true);
+              try { await enableRecurrence(planId, Number(hours)); await reload(); toast.success(`Recurrence enabled — ${hours}h / month auto-rolls`); }
+              catch (e) { toast.error(e.response?.data?.error || e.message); }
+              finally { setBusy(false); }
+            }}>🔧 Enable monthly recurrence</button>
+        )}
         <a className="btn btn-ghost btn-sm" href={exportPlanXlsxUrl(planId)} target="_blank" rel="noopener noreferrer" title="Download as Excel" onClick={(e) => {
           // axios includes the JWT via interceptor — but a plain anchor won't.
           // Fetch with the token, get a Blob, trigger download.

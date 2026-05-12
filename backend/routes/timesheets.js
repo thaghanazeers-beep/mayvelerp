@@ -237,6 +237,62 @@ router.get('/plans', async (req, res) => {
   }
   ok(res, await ProjectHoursPlan.find(filter).sort({ periodMonth: -1, createdAt: -1 }));
 });
+// POST /api/time/plans/:id/spawn-children
+//   Services projects: a parent plan defines the total budget. Calling this
+//   endpoint generates one child plan per month of project.durationMonths,
+//   each as 'services-child' with parentPlanId set. Idempotent — won't
+//   re-create children that already exist.
+router.post('/plans/:id/spawn-children', async (req, res) => {
+  try {
+    const parent = await ProjectHoursPlan.findById(req.params.id);
+    if (!parent) return fail(res, 'Plan not found', 404);
+    const project = await Project.findById(parent.projectId);
+    if (project?.type !== 'services') return fail(res, 'Only services projects support child plans');
+    const months = Math.max(1, project.durationMonths || 1);
+
+    // Walk forward from parent.periodStart for `months` calendar months.
+    const created = [];
+    const startDate = new Date(parent.periodStart);
+    for (let i = 0; i < months; i++) {
+      const d = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + i, 1));
+      const ym = d.toISOString().slice(0, 7);
+      const exists = await ProjectHoursPlan.findOne({ parentPlanId: parent._id, periodMonth: ym });
+      if (exists) continue;
+      const { periodStart, periodEnd } = monthBounds(ym);
+      const child = await ProjectHoursPlan.create({
+        teamspaceId: parent.teamspaceId,
+        projectId:   parent.projectId,
+        title:       `${project.name} ${ym} (child)`,
+        periodMonth: ym, periodStart, periodEnd,
+        periodKind:  'services-child',
+        parentPlanId: parent._id,
+        status: 'draft',
+        createdBy: req.user?.email || 'system',
+      });
+      created.push(child);
+    }
+    ok(res, { created: created.length, total: months });
+  } catch (e) { fail(res, e.message, 500); }
+});
+
+// POST /api/time/plans/:id/enable-recurrence
+//   Maintenance projects: marks this plan as the recurrence template.
+//   Body: { monthlyHours }. A monthly tick (registered in server.js) creates
+//   the next month's plan when the current month ends.
+router.post('/plans/:id/enable-recurrence', async (req, res) => {
+  try {
+    const plan = await ProjectHoursPlan.findById(req.params.id);
+    if (!plan) return fail(res, 'Plan not found', 404);
+    const project = await Project.findById(plan.projectId);
+    if (project?.type !== 'maintenance') return fail(res, 'Only maintenance projects support recurrence');
+    const hours = Math.max(1, Number(req.body?.monthlyHours || plan.totalPlannedHours || 0));
+    plan.periodKind = 'maintenance';
+    plan.recurrence = { active: true, monthlyHours: hours, nextRunOn: plan.periodEnd };
+    await plan.save();
+    ok(res, plan);
+  } catch (e) { fail(res, e.message, 500); }
+});
+
 router.get('/plans/:id', async (req, res) => {
   const plan  = await ProjectHoursPlan.findById(req.params.id);
   if (!plan) return fail(res, 'Plan not found', 404);
@@ -645,6 +701,23 @@ router.post('/plans/:id/approve', async (req, res) => {
   plan.approvedBy = req.user?.email || req.user?.name;
   await plan.save();
   await audit({ teamspaceId: plan.teamspaceId, entityType: 'plan', entityId: plan._id, action: 'approve', before, after: { status: 'approved' }, req });
+
+  // Services projects: approving the parent cascades approval to every child
+  // plan (one per month of the project's duration). Child plans inherit the
+  // same approvedAt/By so the per-month budgets are immediately spendable.
+  const project = await Project.findById(plan.projectId).select('type').lean();
+  if (project?.type === 'services') {
+    const children = await ProjectHoursPlan.find({ parentPlanId: plan._id, status: { $in: ['draft', 'pending'] } });
+    for (const ch of children) {
+      const chBefore = { status: ch.status };
+      ch.status     = 'approved';
+      ch.approvedAt = plan.approvedAt;
+      ch.approvedBy = plan.approvedBy;
+      await ch.save();
+      await audit({ teamspaceId: ch.teamspaceId, entityType: 'plan', entityId: ch._id, action: 'approve', before: chBefore, after: { status: 'approved', cascadedFrom: String(plan._id) }, req });
+    }
+    if (children.length) console.log(`[services] cascade-approved ${children.length} child plans of ${plan._id}`);
+  }
 
   if (plan.submittedBy) {
     const owner = await User.findOne({ email: plan.submittedBy });

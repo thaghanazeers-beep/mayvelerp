@@ -2035,6 +2035,49 @@ async function weeklyDigestTick() {
   } catch (e) { console.error('weeklyDigestTick failed:', e.message); }
 }
 
+// Once-a-day tick: maintenance projects' recurrence templates create next
+// month's plan when the current month's periodEnd has passed. Idempotent —
+// if the child plan already exists for the next month, skip.
+async function maintenanceRecurrenceTick() {
+  try {
+    const ProjectHoursPlan = require('./models/ProjectHoursPlan');
+    const now = new Date();
+    const templates = await ProjectHoursPlan.find({
+      periodKind: 'maintenance',
+      'recurrence.active': true,
+      'recurrence.nextRunOn': { $lte: now },
+    }).lean();
+    for (const tpl of templates) {
+      // Next month after the template's periodEnd
+      const baseEnd = new Date(tpl.recurrence.nextRunOn || tpl.periodEnd);
+      const nextStart = new Date(Date.UTC(baseEnd.getUTCFullYear(), baseEnd.getUTCMonth() + 1, 1));
+      const ym = nextStart.toISOString().slice(0, 7);
+      const exists = await ProjectHoursPlan.findOne({ parentPlanId: tpl._id, periodMonth: ym });
+      if (exists) {
+        await ProjectHoursPlan.updateOne({ _id: tpl._id }, { $set: { 'recurrence.nextRunOn': new Date(Date.UTC(nextStart.getUTCFullYear(), nextStart.getUTCMonth() + 1, 0)) } });
+        continue;
+      }
+      const periodEnd = new Date(Date.UTC(nextStart.getUTCFullYear(), nextStart.getUTCMonth() + 1, 0, 23, 59, 59));
+      const project = await mongoose.model('Project').findById(tpl.projectId).select('name').lean();
+      await ProjectHoursPlan.create({
+        teamspaceId: tpl.teamspaceId,
+        projectId:   tpl.projectId,
+        title:       `${project?.name || 'Maintenance'} ${ym} (auto)`,
+        periodMonth: ym,
+        periodStart: nextStart,
+        periodEnd,
+        periodKind:  'maintenance',
+        parentPlanId: tpl._id,
+        status:       'draft',
+        createdBy:   'system',
+        totalPlannedHours: tpl.recurrence.monthlyHours,
+      });
+      await ProjectHoursPlan.updateOne({ _id: tpl._id }, { $set: { 'recurrence.nextRunOn': periodEnd } });
+      console.log('[maintenance] spawned ' + ym + ' for project ' + tpl.projectId);
+    }
+  } catch (e) { console.error('maintenanceRecurrenceTick failed:', e.message); }
+}
+
 const PORT = process.env.PORT || 3001;
 initTransporter().finally(() => {
   app.listen(PORT, '0.0.0.0', () => {
@@ -2049,5 +2092,10 @@ initTransporter().finally(() => {
     // Weekly digest — checked every hour, only fires Friday 18:00.
     setInterval(weeklyDigestTick, 60 * 60 * 1000);
     setTimeout(weeklyDigestTick, 60 * 1000);
+
+    // Maintenance recurrence — checked every 6 hours. Cheap query (template
+    // count is small) so over-running is fine; the work itself is idempotent.
+    setInterval(maintenanceRecurrenceTick, 6 * 60 * 60 * 1000);
+    setTimeout(maintenanceRecurrenceTick, 5 * 60 * 1000);
   });
 });
