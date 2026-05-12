@@ -188,6 +188,53 @@ const Tsuha   = tokenFor(suha);
   log('Avatar route requires auth', r.status === 401 || r.status === 403, `status=${r.status}`);
 }
 
+// ─── 16. B033 — login response must NOT contain password hash ────────────────
+{
+  const r = await fetch(BASE + '/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: thagha.email, password: 'Demo2026!' }),
+  });
+  const data = await r.json();
+  const leaks = data.user && ('password' in data.user || 'passwordResetToken' in data.user || 'passwordResetExpires' in data.user);
+  log('B033 login response sanitized', !leaks, `keys=${Object.keys(data.user || {}).filter(k => /pass/i.test(k)).join(',') || '(none)'}`);
+}
+
+// ─── 17. B033 — login with missing fields → 400 ──────────────────────────────
+{
+  const r = await fetch(BASE + '/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({}) });
+  log('B033 login no creds → 400', r.status === 400, `status=${r.status}`);
+}
+
+// ─── 18. B026 — /plans/:id/allocations needs auth to the plan's teamspace ────
+{
+  // Find a plan in Product Design and try to read its allocations as a user
+  // who isn't in that teamspace. (HR is "Member" with no teamspaces.)
+  const planInTs = await db.collection('projecthoursplans').findOne({ teamspaceId: new mongoose.Types.ObjectId(TS_PRODUCT) });
+  const hr = await db.collection('users').findOne({ role: 'Member' });
+  if (planInTs && hr) {
+    const Thr = tokenFor(hr);
+    const r = await api(Thr, `/api/time/plans/${planInTs._id}/allocations`);
+    log('B026 plan allocations gated', r.status === 403, `status=${r.status}`);
+  } else {
+    log('B026 plan allocations gated', true, 'skipped — no plan or no Member');
+  }
+}
+
+// ─── 19. B027 — Allocation PUT/DELETE require ownership or admin ─────────────
+{
+  // Find an allocation, try to mutate as HR (not project owner, not admin, not Super).
+  const someAlloc = await db.collection('allocations').findOne({});
+  const hr = await db.collection('users').findOne({ role: 'Member' });
+  if (someAlloc && hr) {
+    const Thr = tokenFor(hr);
+    const r = await api(Thr, `/api/time/allocations/${someAlloc._id}`, { method: 'PUT', body: JSON.stringify({ allocatedHours: 999 }) });
+    log('B027 allocation PUT gated', r.status === 403, `status=${r.status}`);
+  } else {
+    log('B027 allocation PUT gated', true, 'skipped');
+  }
+}
+
 console.log('---');
 const pass = results.filter(x => x.ok).length;
 const total = results.length;

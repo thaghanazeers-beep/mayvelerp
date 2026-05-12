@@ -39,6 +39,8 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('mayvel_originalUser');
+    localStorage.removeItem('mayvel_originalToken');
     sessionStorage.removeItem('mayvel_originalUser');
     sessionStorage.removeItem('mayvel_originalToken');
   };
@@ -48,26 +50,30 @@ export function AuthProvider({ children }) {
   // checking `user.isSuperAdmin` directly so the normal-mode switch works.
   const isSuperAdminActive = !!(user?.isSuperAdmin && superAdminMode);
 
-  // Impersonation: SuperAdmin "views as" another user. We stash the original
-  // user + token in sessionStorage (not localStorage — auto-cleared on tab
-  // close so we don't get stuck impersonating). Reverting restores them.
-  const originalUserJSON = typeof window !== 'undefined' ? sessionStorage.getItem('mayvel_originalUser') : null;
+  // Impersonation: SuperAdmin "views as" another user. The original user is
+  // persisted to **localStorage** so a tab close doesn't strand the SuperAdmin
+  // in the impersonated identity (which the View-as banner can't help with —
+  // the banner only renders for SuperAdmins, and the impersonated user isn't
+  // one). Reverting restores the original session.
+  const originalUserJSON = typeof window !== 'undefined' ? localStorage.getItem('mayvel_originalUser') : null;
   const impersonating = originalUserJSON ? JSON.parse(originalUserJSON) : null;
 
   const impersonateAs = (targetUser, targetToken) => {
-    // Save original only the first time; if already impersonating, don't overwrite.
-    if (!sessionStorage.getItem('mayvel_originalUser')) {
-      sessionStorage.setItem('mayvel_originalUser', JSON.stringify(user));
-      sessionStorage.setItem('mayvel_originalToken', localStorage.getItem('token') || '');
+    if (!localStorage.getItem('mayvel_originalUser')) {
+      localStorage.setItem('mayvel_originalUser', JSON.stringify(user));
+      localStorage.setItem('mayvel_originalToken', localStorage.getItem('token') || '');
     }
     setUser(targetUser);
     if (targetToken) localStorage.setItem('token', targetToken);
   };
   const revertImpersonation = () => {
-    const origUser  = sessionStorage.getItem('mayvel_originalUser');
-    const origToken = sessionStorage.getItem('mayvel_originalToken');
+    const origUser  = localStorage.getItem('mayvel_originalUser');
+    const origToken = localStorage.getItem('mayvel_originalToken');
     if (origUser)  setUser(JSON.parse(origUser));
     if (origToken) localStorage.setItem('token', origToken);
+    localStorage.removeItem('mayvel_originalUser');
+    localStorage.removeItem('mayvel_originalToken');
+    // Legacy: clear any stale sessionStorage entries from older versions.
     sessionStorage.removeItem('mayvel_originalUser');
     sessionStorage.removeItem('mayvel_originalToken');
   };

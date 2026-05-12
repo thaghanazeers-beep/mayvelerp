@@ -139,6 +139,31 @@ if (createdPlanId) {
   }
 }
 
+// ─── FLOW 4b: Plan self-approval blocked (B025) ──────────────────────────────
+{
+  // Pooja (global Admin, not SuperAdmin) submits a plan via DB, then tries to
+  // approve her own. Backend should 403.
+  const aProj = await db.collection('projects').findOne({ teamspaceId: new mongoose.Types.ObjectId(TS) });
+  const planDoc = {
+    title: '[smoke] self-approve test',
+    projectId: aProj._id,
+    teamspaceId: new mongoose.Types.ObjectId(TS),
+    periodKind: 'single-month',
+    periodMonth: '2026-06',
+    submittedBy: pooja.email,
+    status: 'pending',
+    currency: 'INR',
+    totalCostCents: 0, totalRevenueCents: 0,
+    submittedAt: new Date(),
+    createdBy: pooja.email,
+  };
+  const ins = await db.collection('projecthoursplans').insertOne(planDoc);
+  const id = ins.insertedId;
+  const r = await api(Tpooja, `/api/time/plans/${id}/approve`, { method: 'POST', headers: HDR });
+  log('B025 plan self-approval blocked', r.status === 403, `status=${r.status}`);
+  await db.collection('projecthoursplans').deleteOne({ _id: id });
+}
+
 // ─── FLOW 5: Task assignment notification (B011 check) ───────────────────────
 {
   const before = await db.collection('notifications').countDocuments({ userId: pooja.name, type: 'task_created' });

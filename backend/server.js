@@ -308,6 +308,18 @@ Notification.createIfAllowed = (doc) => createNotificationFiltered(doc);
 // Public signup is disabled. Only a Super Admin can create new users (via the
 // admin user management page → POST /api/users). The route is left in place
 // returning 403 so old clients show a clear error instead of a silent 404.
+// Strip sensitive fields before returning a User to the client. Used by every
+// auth flow (login, reset, impersonate, create) so password hashes and reset
+// tokens never leak in API responses.
+function sanitizeUser(userDoc) {
+  if (!userDoc) return userDoc;
+  const u = typeof userDoc.toObject === 'function' ? userDoc.toObject() : { ...userDoc };
+  delete u.password;
+  delete u.passwordResetToken;
+  delete u.passwordResetExpires;
+  return u;
+}
+
 app.post('/api/auth/signup', (req, res) => {
   res.status(403).json({ message: 'Public signup is disabled. Ask a Super Admin to add you.' });
 });
@@ -330,7 +342,7 @@ app.post('/api/users', authenticate, async (req, res) => {
       role: ['Admin', 'Member'].includes(role) ? role : 'Member',
       profilePictureUrl: `https://i.pravatar.cc/150?u=${normalized}`,
     });
-    res.status(201).json(user);
+    res.status(201).json(sanitizeUser(user));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -429,19 +441,20 @@ app.post('/api/admin/impersonate', authenticate, async (req, res) => {
     if (!target) return res.status(404).json({ error: 'User not found' });
     const token = generateToken(target);
     console.log('[impersonate] ' + me.email + ' → ' + target.email);
-    res.json({ user: target, token });
+    res.json({ user: sanitizeUser(target), token });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
     const user = await User.findOne({ email });
     if (!user || !(await verifyPassword(user, password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     const token = generateToken(user);
-    res.json({ user, token });
+    res.json({ user: sanitizeUser(user), token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -550,7 +563,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
     await user.save();
 
     const authToken = generateToken(user);
-    res.json({ user, token: authToken, message: 'Password reset successful' });
+    res.json({ user: sanitizeUser(user), token: authToken, message: 'Password reset successful' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

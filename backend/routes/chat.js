@@ -23,6 +23,7 @@ const Allocation     = require('../models/Allocation');
 const TimeEntry      = require('../models/TimeEntry');
 const User           = require('../models/User');
 const RateBucket     = require('../models/RateBucket');
+const TeamspaceMembership = require('../models/TeamspaceMembership');
 
 if (!process.env.GEMINI_API_KEY) {
   console.warn('[chat] GEMINI_API_KEY not set — /api/chat will return 503');
@@ -158,12 +159,29 @@ const TOOLS = {
         required: [],
       },
     },
-    handler: async (args, _auth) => {
+    handler: async (args, auth) => {
       const month = args.month || new Date().toISOString().slice(0, 7);
       const [y, m] = month.split('-').map(Number);
       const monthStart = new Date(Date.UTC(y, m - 1, 1));
       const monthEnd   = new Date(Date.UTC(y, m, 0, 23, 59, 59));
-      const users = await User.find({}).select('name email role').populate('rateBucketId').lean();
+      // Only Super Admins see cost-rate data. Everyone else gets names + roles
+      // (cost rate redacted) — chat used to leak org-wide compensation to anyone
+      // logged in.
+      const me = auth?.userId ? await User.findById(auth.userId).select('isSuperAdmin').lean() : null;
+      const isSuper = !!me?.isSuperAdmin;
+
+      // Scope to members of the caller's current teamspace.
+      let users;
+      if (auth?.teamspaceId) {
+        const memberships = await TeamspaceMembership.find({
+          teamspaceId: auth.teamspaceId, status: 'active',
+        }).select('userId').lean();
+        const userIds = memberships.map(m => m.userId);
+        users = await User.find({ _id: { $in: userIds } }).select('name email role').populate('rateBucketId').lean();
+      } else {
+        users = await User.find({}).select('name email role').populate('rateBucketId').lean();
+      }
+
       const allocs = await Allocation.find({ weekStart: { $gte: monthStart, $lte: monthEnd } })
         .select('userId allocatedHours consumedHours projectId').lean();
       const aggByUser = new Map();
@@ -179,16 +197,19 @@ const TOOLS = {
         month,
         employees: users.map(u => {
           const agg = aggByUser.get(String(u._id)) || { allocatedHours: 0, consumedHours: 0, projectIds: new Set() };
-          return {
+          const base = {
             name: u.name,
             email: u.email,
             role: u.role,
-            costRateRupeesPerHr: u.rateBucketId ? Math.round(u.rateBucketId.ratePerHourCents / 100) : null,
-            bucket: u.rateBucketId?.name || null,
             allocatedHours: +agg.allocatedHours.toFixed(2),
             consumedHours:  +agg.consumedHours.toFixed(2),
             projectsCount:  agg.projectIds.size,
           };
+          if (isSuper) {
+            base.costRateRupeesPerHr = u.rateBucketId ? Math.round(u.rateBucketId.ratePerHourCents / 100) : null;
+            base.bucket = u.rateBucketId?.name || null;
+          }
+          return base;
         }),
       };
     },

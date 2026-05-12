@@ -61,11 +61,14 @@ export default function PlanEditorPage() {
 
   if (!plan) return <div className="plan-page"><div className="plan-empty">Loading…</div></div>;
 
-  const isAdmin    = user?.role === 'Admin';
+  const isAdmin    = user?.role === 'Admin' || user?.isSuperAdmin;
+  const isSuper    = !!user?.isSuperAdmin;
   const isOwner    = project && String(project.ownerId) === String(user?._id);
   const editable   = plan.status === 'draft' && (isOwner || isAdmin);
   const canSubmit  = (plan.status === 'draft' || plan.status === 'rejected') && (isOwner || isAdmin);
-  const canApprove = plan.status === 'pending' && isAdmin;
+  // Submitter can't approve their own plan — matches the backend gate.
+  const isSubmitter = plan.submittedBy && user?.email && plan.submittedBy === user.email;
+  const canApprove = plan.status === 'pending' && isAdmin && (isSuper || !isSubmitter);
   const canReopen  = plan.status === 'rejected' && (isOwner || isAdmin);
 
   const totals = {

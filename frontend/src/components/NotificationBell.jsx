@@ -49,10 +49,12 @@ export default function NotificationBell({ onToast }) {
   };
 
   useEffect(() => {
+    if (!userName) return;        // wait until auth resolves; otherwise the
+                                  // captured closure stays empty-named forever
     fetchData();
     const interval = setInterval(fetchData, 5000); // poll every 5s
     return () => clearInterval(interval);
-  }, []);
+  }, [userName]);
 
   // Close dropdown on outside click
   useEffect(() => {

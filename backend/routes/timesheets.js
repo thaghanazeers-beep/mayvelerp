@@ -698,10 +698,19 @@ router.post('/plans/:id/submit', async (req, res) => {
 
 // POST /api/time/plans/:id/approve  — admin only, pending → approved
 router.post('/plans/:id/approve', async (req, res) => {
-  if (!isAdmin(req)) return fail(res, 'Admin only', 403);
+  // Approval is reserved for SuperAdmin OR a workspace admin who is *not* the
+  // submitter. Previously any global-Admin user could approve any plan,
+  // including ones they themselves submitted (no separation of duties).
+  const me = await User.findById(req.user.userId).select('isSuperAdmin role email').lean();
+  const isSuper = !!me?.isSuperAdmin;
+  if (!isSuper && me?.role !== 'Admin') return fail(res, 'Admin only', 403);
   const plan = await ProjectHoursPlan.findById(req.params.id);
   if (!plan) return fail(res, 'Plan not found', 404);
   if (plan.status !== 'pending') return fail(res, `Cannot approve a ${plan.status} plan`, 400);
+  // Submitter cannot self-approve. SuperAdmin override allowed for emergencies.
+  if (!isSuper && plan.submittedBy && String(plan.submittedBy) === String(me?.email)) {
+    return fail(res, 'You submitted this plan — another admin must approve it.', 403);
+  }
 
   const before = { status: plan.status };
   plan.status     = 'approved';
@@ -747,13 +756,18 @@ router.post('/plans/:id/approve', async (req, res) => {
 
 // POST /api/time/plans/:id/reject  — admin only, pending → rejected, body: {reason}
 router.post('/plans/:id/reject', async (req, res) => {
-  if (!isAdmin(req)) return fail(res, 'Admin only', 403);
+  const me = await User.findById(req.user.userId).select('isSuperAdmin role email').lean();
+  const isSuper = !!me?.isSuperAdmin;
+  if (!isSuper && me?.role !== 'Admin') return fail(res, 'Admin only', 403);
   const reason = (req.body?.reason || '').trim();
   if (reason.length < 10) return fail(res, 'Rejection reason must be at least 10 characters', 400);
 
   const plan = await ProjectHoursPlan.findById(req.params.id);
   if (!plan) return fail(res, 'Plan not found', 404);
   if (plan.status !== 'pending') return fail(res, `Cannot reject a ${plan.status} plan`, 400);
+  if (!isSuper && plan.submittedBy && String(plan.submittedBy) === String(me?.email)) {
+    return fail(res, 'You submitted this plan — another admin must reject it.', 403);
+  }
 
   const before = { status: plan.status };
   plan.status          = 'rejected';
@@ -970,8 +984,19 @@ router.post('/plans/:id/allocate', async (req, res) => {
   ok(res, { tasksCreated: created, allocationsCreated: allocCreated, skipped });
 });
 
-// GET /api/time/plans/:planId/allocations  — line × week grid for the editor
+// GET /api/time/plans/:planId/allocations  — line × week grid for the editor.
+// Requires the caller to be a member of the plan's teamspace (or SuperAdmin),
+// otherwise this leaks frozen rates + per-user allocated/consumed hours.
 router.get('/plans/:planId/allocations', async (req, res) => {
+  const plan = await ProjectHoursPlan.findById(req.params.planId).select('teamspaceId').lean();
+  if (!plan) return fail(res, 'Plan not found', 404);
+  const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+  if (!me?.isSuperAdmin) {
+    const membership = await TeamspaceMembership.findOne({
+      teamspaceId: plan.teamspaceId, userId: req.user.userId, status: 'active'
+    }).lean();
+    if (!membership) return fail(res, 'No access to this teamspace', 403);
+  }
   const allocs = await Allocation.find({ planId: req.params.planId }).sort({ weekStart: 1 });
   ok(res, allocs);
 });
@@ -995,10 +1020,28 @@ router.get('/allocations', async (req, res) => {
   ok(res, await Allocation.find(filter).sort({ weekStart: 1 }));
 });
 
+// Only project owners (of the allocation's project), Super Admins, or workspace
+// teamspace admins may mutate allocations. Pre-fix anyone with an account could
+// PUT/DELETE any allocation in any teamspace.
+async function canMutateAllocation(req, a) {
+  const me = await User.findById(req.user.userId).select('isSuperAdmin role').lean();
+  if (me?.isSuperAdmin) return true;
+  const project = await Project.findById(a.projectId).select('ownerId teamspaceId').lean();
+  if (project && String(project.ownerId) === String(req.user.userId)) return true;
+  if (project?.teamspaceId) {
+    const m = await TeamspaceMembership.findOne({
+      teamspaceId: project.teamspaceId, userId: req.user.userId, role: 'admin', status: 'active',
+    }).lean();
+    if (m) return true;
+  }
+  return false;
+}
+
 // PUT /api/time/allocations/:id  — adjust allocatedHours; cannot drop below consumedHours
 router.put('/allocations/:id', async (req, res) => {
   const a = await Allocation.findById(req.params.id);
   if (!a) return fail(res, 'Allocation not found', 404);
+  if (!(await canMutateAllocation(req, a))) return fail(res, 'Not allowed to edit this allocation', 403);
 
   if (req.body.allocatedHours != null) {
     const newAllocated = Number(req.body.allocatedHours);
@@ -1018,6 +1061,7 @@ router.put('/allocations/:id', async (req, res) => {
 router.delete('/allocations/:id', async (req, res) => {
   const a = await Allocation.findById(req.params.id);
   if (!a) return fail(res, 'Allocation not found', 404);
+  if (!(await canMutateAllocation(req, a))) return fail(res, 'Not allowed to delete this allocation', 403);
   if (a.consumedHours > 0) return fail(res, `Cannot delete — ${a.consumedHours}h already logged. Close instead.`, 400);
   await Allocation.findByIdAndDelete(a._id);
   ok(res, { success: true });

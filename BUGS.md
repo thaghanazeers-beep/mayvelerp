@@ -180,6 +180,77 @@ A one-liner is fine. I'll repro and fill in details.
 
 ---
 
+### B025 — Plan submitter could approve their own plan
+- **Status**: FIXED
+- **Severity**: P0
+- **Where**: [backend/routes/timesheets.js:700-712](backend/routes/timesheets.js#L700-L712), `:758-772` (reject)
+- **What's wrong**: Approve/reject only gated on `req.user.role === 'Admin'`. Any user with global Admin role (Pooja, Karthick, Suha all qualify) could submit a plan and then immediately approve it themselves — no separation of duties.
+- **Fix**: Approve and Reject now compare `plan.submittedBy` against `req.user.email`. Self-approval returns 403 unless caller is SuperAdmin (emergency override). PlanEditorPage frontend hides the Approve/Reject buttons when the current user is the submitter.
+
+---
+
+### B026 — `GET /api/time/plans/:planId/allocations` had no auth check
+- **Status**: FIXED
+- **Severity**: P0
+- **Where**: [backend/routes/timesheets.js:973-977](backend/routes/timesheets.js#L973-L977)
+- **What's wrong**: Endpoint returned every allocation in the plan (frozen rates, allocated/consumed hours, per-user IDs) to any authenticated user — including users from another teamspace.
+- **Fix**: Loads the plan, requires SuperAdmin or active TeamspaceMembership in the plan's teamspace.
+
+---
+
+### B027 — Allocation PUT/DELETE had no auth check
+- **Status**: FIXED
+- **Severity**: P0
+- **Where**: [backend/routes/timesheets.js:998-1041](backend/routes/timesheets.js#L998-L1041)
+- **What's wrong**: Any authenticated user could mutate or delete any allocation in any teamspace.
+- **Fix**: Added `canMutateAllocation` helper. Allowed when caller is SuperAdmin, the project owner, or an admin in the project's teamspace.
+
+---
+
+### B030 — Chat `list_employees` tool leaked org-wide cost rates
+- **Status**: FIXED
+- **Severity**: P0
+- **Where**: [backend/routes/chat.js:149-194](backend/routes/chat.js#L149-L194)
+- **What's wrong**: Tool ran `User.find({})` and returned `costRateRupeesPerHr` + bucket name for every user. Any logged-in user could ask the AI "list employees" and exfiltrate compensation org-wide.
+- **Fix**: Tool now scopes to members of the caller's current teamspace (via `TeamspaceMembership`) and redacts cost-rate fields unless caller is SuperAdmin.
+
+---
+
+### B033 — Login / reset / impersonate / create-user responses leaked bcrypt password hash
+- **Status**: FIXED
+- **Severity**: P0
+- **Where**: [backend/server.js:311-345 + 422-460 + 550-570](backend/server.js#L436-L460)
+- **What's wrong**: Every auth response (`login`, `impersonate`, `reset-password`, admin-create-user) serialized the full User document including `password`, `passwordResetToken`, and `passwordResetExpires`. Any logged-in user could call `/api/auth/login` (or watch the network tab) and read their own bcrypt hash; impersonation responses leaked any target's hash to the SuperAdmin's browser.
+- **Fix**: Added `sanitizeUser()` helper that strips the three sensitive fields. Applied to all four routes. Login also now returns 400 when email/password is missing.
+
+---
+
+### B036 — Tab close stranded SuperAdmin in impersonated identity
+- **Status**: FIXED
+- **Severity**: P1
+- **Where**: [frontend/src/context/AuthContext.jsx](frontend/src/context/AuthContext.jsx)
+- **What's wrong**: Original user was stashed in `sessionStorage` while the impersonated token sat in `localStorage`. Tab close cleared sessionStorage but kept the impersonated token → next visit loaded the impersonated user with no SuperAdmin powers and no "View as" banner to revert.
+- **Fix**: Original user + token now persist to `localStorage`. `logout()` clears both old and new keys for back-compat.
+
+---
+
+### B045 — NotificationBell polling captured stale empty username
+- **Status**: FIXED
+- **Severity**: P2
+- **Where**: [frontend/src/components/NotificationBell.jsx:51-55](frontend/src/components/NotificationBell.jsx#L51-L55)
+- **What's wrong**: `useEffect(() => fetchData(); setInterval(fetchData, 5000); ...)` with empty deps captured `userName` on mount. If auth resolved a tick later, the closure stayed empty-named forever and the bell never updated until manual reload.
+- **Fix**: Deps now include `[userName]`, with an early return when empty so the interval doesn't fire until auth resolves.
+
+---
+
+### B037 — PlanEditorPage Approve button visible to plan submitter (UI side of B025)
+- **Status**: FIXED
+- **Severity**: P0
+- **Where**: [frontend/src/pages/PlanEditorPage.jsx:64-71](frontend/src/pages/PlanEditorPage.jsx#L64-L71)
+- **Fix**: `canApprove` now requires `isSuper || !isSubmitter`. Backend gate (B025) is the actual authority.
+
+---
+
 ## Fixed (recent)
 
 - `done` Plan-approved notification was navigating to `/tasks` — `bc976e7`
