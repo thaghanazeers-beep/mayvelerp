@@ -112,6 +112,11 @@ export default function Layout({ children, onToast }) {
   const [expandedTs, setExpandedTs] = useState({});  // { tsId: true/false }
   const [tsMenu, setTsMenu] = useState(null);         // tsId for context menu
   const [unreadByTs, setUnreadByTs] = useState({});   // { teamspaceId: unreadCount }
+  const [sidebarOpen, setSidebarOpen] = useState(false);  // mobile drawer
+
+  // Auto-close mobile sidebar when route changes (so picking a teamspace
+  // doesn't leave the drawer floating over the page on a phone).
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   // Poll per-teamspace unread counts. Same 5s cadence as the global header
   // bell so the numbers stay roughly in sync.
@@ -270,7 +275,19 @@ export default function Layout({ children, onToast }) {
 
   return (
     <div className="layout">
-      <aside className="sidebar">
+      {/* Mobile backdrop — closes the drawer when tapped outside. */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'none',
+          }}
+          className="mobile-sidebar-backdrop"
+        />
+      )}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         {/* Logo */}
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">
@@ -481,6 +498,16 @@ export default function Layout({ children, onToast }) {
       <div className="main-area">
         <header className="header">
           <div className="header-left">
+            {/* Hamburger — visible only on mobile via CSS. */}
+            <button
+              className="mobile-sidebar-toggle btn-icon"
+              onClick={() => setSidebarOpen(s => !s)}
+              aria-label="Toggle navigation"
+              title="Menu"
+              style={{ display: 'none' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
             <h2 className="page-title">{pageTitles[activePage] || ''}</h2>
           </div>
           <div className="header-right">

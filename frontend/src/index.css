@@ -1,38 +1,48 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 /* ══════════════════════════════════════════════════════
-   MAYVEL — Design System v3 (Linear / iOS Inspired)
+   MAYVEL — Design System v4 (mayvel.ai brand alignment)
+   Brand colors sampled from mayvel.ai:
+     bg base    #050505 / #080808 (near-black)
+     surface    #1b1b1b / #2b2b2b
+     accent     #b8ff03 (signature lime green)
+     blue       #0080ff (secondary)
+     red        #ff330f (warnings)
+     muted text #919191
+   Fonts: Instrument Sans (headings), Poppins (body) — same as the marketing site.
    ══════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Core Surfaces ── */
-  --bg-app: #0d1117;
-  --bg-surface: #161b22;
-  --bg-elevated: #1c2128;
-  --bg-card: rgba(22, 27, 34, 0.85);
-  --bg-hover: rgba(48, 54, 61, 0.6);
-  --bg-input: rgba(13, 17, 23, 0.6);
-  --bg-selected: rgba(56, 139, 253, 0.08);
+  /* ── Core Surfaces — deeper than v3 for the on-brand black ── */
+  --bg-app: #050505;
+  --bg-surface: #0c0c0c;
+  --bg-elevated: #1b1b1b;
+  --bg-card: rgba(20, 20, 20, 0.88);
+  --bg-hover: rgba(43, 43, 43, 0.7);
+  --bg-input: rgba(8, 8, 8, 0.7);
+  --bg-selected: rgba(184, 255, 3, 0.06);
 
-  /* ── Brand Colors ── */
-  --primary: #6e56cf;
-  --primary-light: #9b8afb;
-  --primary-dark: #5b45b0;
-  --primary-glow: rgba(110, 86, 207, 0.35);
+  /* ── Brand Colors — Mayvel signature lime ── */
+  --primary: #b8ff03;
+  --primary-light: #d4ff5c;
+  --primary-dark: #95d100;
+  --primary-glow: rgba(184, 255, 3, 0.30);
+  --primary-contrast: #050505;          /* text color on lime buttons */
 
   /* ── Semantic Colors ── */
-  --accent-green: #3fb950;
-  --accent-orange: #d29922;
-  --accent-red: #f85149;
-  --accent-blue: #58a6ff;
-  --accent-purple: #bc8cff;
-  --accent-cyan: #39d2c0;
+  --accent-green: #03ff78;
+  --accent-orange: #ffaa00;
+  --accent-red: #ff330f;
+  --accent-blue: #0080ff;
+  --accent-purple: #a29bfe;
+  --accent-cyan: #00d4ff;
 
   /* ── Typography ── */
-  --text: #e6edf3;
-  --text-secondary: #8b949e;
-  --text-muted: #6e7681;
-  --text-link: var(--accent-blue);
+  --text: #ededed;
+  --text-secondary: #919191;
+  --text-muted: #575757;
+  --text-link: var(--primary);
 
   /* ── Borders ── */
   --border: rgba(240, 246, 252, 0.06);
@@ -111,7 +121,7 @@ html, body, #root {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-app);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -119,6 +129,15 @@ body {
   overflow: hidden;
   line-height: 1.5;
   font-size: 14px;
+  letter-spacing: -0.005em;
+}
+
+/* Headings get the Instrument Sans treatment — same as mayvel.ai marketing. */
+h1, h2, h3, h4, h5, h6,
+.page-title {
+  font-family: 'Instrument Sans', 'Poppins', sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -150,9 +169,11 @@ h3 { font-size: 1.1rem; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
 .btn-primary {
-  background: var(--primary); color: #fff; border-color: var(--primary-dark);
+  background: var(--primary); color: var(--primary-contrast); border-color: var(--primary-dark);
+  font-weight: 600;
+  box-shadow: 0 4px 14px var(--primary-glow);
 }
-.btn-primary:hover { background: var(--primary-light); }
+.btn-primary:hover { background: var(--primary-light); box-shadow: 0 6px 20px var(--primary-glow); }
 .btn-primary:active { transform: scale(0.98); }
 
 .btn-ghost {
@@ -340,3 +361,44 @@ textarea.input { resize: vertical; min-height: 72px; }
   animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — mobile (≤768) and tablet (≤1024)
+   The sidebar (.sidebar) handles its own collapse in Layout.css.
+   Below: global rules that need to apply everywhere.
+   ══════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  body { font-size: 13px; }
+  .modal { max-width: calc(100vw - 32px) !important; }
+}
+
+@media (max-width: 768px) {
+  body { font-size: 14px; overflow: auto; }   /* allow vertical scroll on mobile */
+  /* Bigger touch targets on mobile — Apple HIG min 44pt */
+  .btn { padding: 10px 16px; font-size: 0.85rem; }
+  .btn-sm { padding: 8px 12px; font-size: 0.8rem; }
+  .btn-icon { width: 38px; height: 38px; }
+  .input, .form-control, select.input { padding: 11px 12px; font-size: 16px; }   /* 16px stops iOS zoom on focus */
+
+  /* Tables become horizontally scrollable strips */
+  .plan-table-wrap, .plan-grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 600px; }
+
+  /* Modal full-screen-ish on phones */
+  .modal { max-width: calc(100vw - 16px) !important; max-height: calc(100vh - 32px); overflow-y: auto; }
+
+  /* Page padding tightens */
+  .content, main.content { padding: 12px !important; }
+
+  /* Hide non-essential text on dense pages */
+  .header-user-name { display: none; }
+}
+
+@media (max-width: 480px) {
+  /* Phone-only tweaks */
+  .header { padding: 8px 12px !important; gap: 6px; }
+  .header-right { gap: 4px !important; }
+  /* Super-admin / view-as / badge are still visible; profile avatar stays */
+  .superadmin-toggle span:last-child,
+  .badge { display: none; }
+}

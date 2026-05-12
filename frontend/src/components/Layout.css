@@ -279,12 +279,29 @@
 /* ════════════════ RESPONSIVE ════════════════ */
 @media (max-width: 768px) {
   .sidebar {
-    position: fixed; left: -240px; top: 0; bottom: 0;
-    z-index: 100; transition: left 0.25s ease;
+    position: fixed; left: -260px; top: 0; bottom: 0;
+    width: 260px; min-width: 260px;
+    z-index: 100; transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 24px rgba(0,0,0,0.5);
   }
   .sidebar.open { left: 0; }
+  .mobile-sidebar-backdrop { display: block !important; }
+  .mobile-sidebar-toggle { display: inline-flex !important; margin-right: 8px; }
+
   .content { padding: 16px; }
-  .header { padding: 0 16px; }
+  .header { padding: 0 12px; min-height: 56px; }
+  .page-title { font-size: 1.05rem; }
+  .header-right { gap: 6px; }
+
+  /* AI chat launcher pushed to corner */
+  .ai-chat-launcher { bottom: 12px !important; right: 12px !important; }
+}
+
+@media (max-width: 480px) {
+  .sidebar { width: 80vw; min-width: 80vw; left: -80vw; }
+  /* Tight quarters on phones */
+  .superadmin-toggle { padding: 4px 8px !important; }
+  .ts-tree-bell { padding: 6px !important; }
 }
 
 /* ════════════════ TYPE OPTIONS ════════════════ */
