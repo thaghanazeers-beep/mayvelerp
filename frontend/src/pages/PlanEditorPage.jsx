@@ -5,7 +5,7 @@ import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
 import {
   getPlan, deletePlan, submitPlan, approvePlan, rejectPlan, reopenPlan, allocatePlan,
-  getRateBuckets, getTaskTypes, getTeam, getProjects,
+  getRateBuckets, getTaskTypes, getTeam, getProjects, getPlanAudit,
   createPlanLine, updatePlanLine, deletePlanLine, formatINR, exportPlanXlsxUrl,
 } from '../api';
 import './PlanPages.css';
@@ -37,6 +37,8 @@ export default function PlanEditorPage() {
   const [busy, setBusy]       = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const reload = async () => {
     const r = await getPlan(planId);
@@ -46,6 +48,7 @@ export default function PlanEditorPage() {
       const ps = await getProjects(activeTeamspaceId);
       setProject(ps.data.find(p => p._id === r.data.plan.projectId) || null);
     }
+    try { const h = await getPlanAudit(planId); setHistory(h.data); } catch {}
   };
   useEffect(() => {
     (async () => {
@@ -273,6 +276,44 @@ export default function PlanEditorPage() {
       {plan.status === 'pending' && (
         <div className="plan-banner plan-banner-pending">
           <strong>Pending</strong> admin approval — submitted by {plan.submittedBy} on {new Date(plan.submittedAt).toLocaleDateString('en-IN')}.
+        </div>
+      )}
+
+      {/* Approval history — full audit trail for this plan. Collapsed by
+          default; expand to see every submit / approve / reject / reopen
+          with timestamp + actor + reason. */}
+      {history.length > 0 && (
+        <div style={{ marginBottom: 12, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <button
+            onClick={() => setShowHistory(s => !s)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', background: 'var(--bg-elevated)', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--text)' }}
+          >
+            <span style={{ fontSize: '1rem' }}>📜</span>
+            <strong style={{ fontSize: '0.88rem' }}>Approval history</strong>
+            <span className="muted" style={{ fontSize: '0.78rem', marginLeft: 6 }}>({history.length} event{history.length === 1 ? '' : 's'})</span>
+            <span style={{ marginLeft: 'auto', fontSize: '0.85rem' }}>{showHistory ? '▴' : '▾'}</span>
+          </button>
+          {showHistory && (
+            <div style={{ padding: '10px 14px', fontSize: '0.82rem' }}>
+              {history.map((h, i) => {
+                const colorMap = { submit: '#3498db', approve: '#00b894', reject: '#e74c3c', reopen: '#fdcb6e', edit: '#a29bfe' };
+                const labelMap = { submit: 'Submitted', approve: 'Approved', reject: 'Rejected', reopen: 'Reopened to draft', edit: 'Edited' };
+                const color = colorMap[h.action] || '#6c5ce7';
+                const label = labelMap[h.action] || h.action;
+                return (
+                  <div key={h._id || i} style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <span style={{ display: 'inline-block', width: 80, padding: '2px 8px', background: color, color: 'white', borderRadius: 4, fontWeight: 600, fontSize: '0.72rem', textAlign: 'center', flexShrink: 0 }}>{label}</span>
+                    <span style={{ flex: 1 }}>
+                      by <strong>{h.actorName || h.actorEmail || 'system'}</strong>
+                      {h.reason && <> — <em>"{h.reason}"</em></>}
+                      {h.after?.status && h.before?.status && <span className="muted" style={{ marginLeft: 6 }}>({h.before.status} → {h.after.status})</span>}
+                    </span>
+                    <span className="muted" style={{ fontSize: '0.75rem', flexShrink: 0 }}>{new Date(h.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

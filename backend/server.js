@@ -945,17 +945,23 @@ app.put('/api/tasks/:id', requireTeamspaceMembership, async (req, res) => {
       if (req.body.status && oldTask.status !== req.body.status) {
         const ctx = { fromStatus: oldTask.status, toStatus: req.body.status };
 
-        // Task submitted for review → notify all Admins
+        // Task submitted for review → notify admins OF THIS TEAMSPACE only.
+        // (Workspace owner is already an admin row in the membership table.)
         if (req.body.status === 'In Review') {
-          const admins = await User.find({ role: 'Admin' }, 'name');
-          for (const admin of admins) {
+          const tsAdminMemberships = await TeamspaceMembership.find({
+            teamspaceId: task.teamspaceId,
+            role: 'admin',
+            status: 'active',
+          }).populate('userId', 'name');
+          for (const m of tsAdminMemberships) {
+            if (!m.userId?.name) continue;
             createNotification({
               type: 'review_requested',
               title: 'Review Requested',
               message: `"${task.title}" submitted for review by ${task.assignee || 'a team member'}`,
               taskId: task.id,
               taskTitle: task.title,
-              userId: admin.name,
+              userId: m.userId.name,
               actorName: task.assignee || 'Someone',
             });
           }

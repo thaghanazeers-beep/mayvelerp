@@ -217,9 +217,23 @@ router.get('/plans', async (req, res) => {
   }
   if (req.query.awaitingMyApproval === '1' || req.query.awaitingMyApproval === 'true') {
     filter.status = 'pending';
-    const myProjects = await Project.find({ ownerId: req.user.userId }).select('_id').lean();
-    filter.projectId = { $in: myProjects.map(p => p._id) };
-    if (myProjects.length === 0) return ok(res, []);
+    // Approvers = project owners + teamspace admins (so a workspace admin who
+    // didn't create the project still sees plans submitted in their workspace)
+    // + SuperAdmin (sees everything pending).
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (me?.isSuperAdmin) {
+      // No extra filter — return all pending plans across all workspaces.
+    } else {
+      const ownedProjects = await Project.find({ ownerId: req.user.userId }).select('_id').lean();
+      const adminMems    = await TeamspaceMembership.find({ userId: req.user.userId, role: 'admin', status: 'active' }).select('teamspaceId').lean();
+      const ownedIds      = ownedProjects.map(p => p._id);
+      const adminTsIds    = adminMems.map(m => m.teamspaceId);
+      if (ownedIds.length === 0 && adminTsIds.length === 0) return ok(res, []);
+      filter.$or = [
+        { projectId:   { $in: ownedIds   } },
+        { teamspaceId: { $in: adminTsIds } },
+      ];
+    }
   }
   ok(res, await ProjectHoursPlan.find(filter).sort({ periodMonth: -1, createdAt: -1 }));
 });
