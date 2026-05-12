@@ -5,6 +5,7 @@ import mammoth from 'mammoth';
 import { init as initPptxPreview } from 'pptx-preview';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { useToast } from '../context/ToastContext';
 import TaskComments from '../components/TaskComments';
 import './TaskDetailPage.css';
 
@@ -142,6 +143,7 @@ export default function TaskDetailPage({ task, onBack, onUpdated }) {
   const auth = useAuth();
   const currentUser = auth?.user;
   const { activeTeamspaceId, teamspaces } = useTeamspace();
+  const toast = useToast();
   // The teamspace's owner — only they (or Super Admin in elevated mode) can
   // approve/reject a task that's In Review.
   const activeTeamspace = teamspaces?.find(t => String(t._id) === String(activeTeamspaceId));
@@ -241,9 +243,20 @@ export default function TaskDetailPage({ task, onBack, onUpdated }) {
     if (isAdminOrOwner) return true;
     return true;
   };
+  const statusChangeDeniedReason = (newStatus) => {
+    if (!canEdit) return 'You don’t have permission to edit this task.';
+    if ((newStatus === 'Completed' || newStatus === 'Rejected') && !canApproveReject) {
+      return 'Only the teamspace owner (or a Super Admin) can move a task to Completed or Rejected.';
+    }
+    return null;
+  };
 
   const handleTitleChange = (v) => { if (!canEdit) return; setTitle(v); autoSave({ title: v }); };
-  const handleStatusChange = (v) => { if (!canChangeStatusTo(v)) return; setStatus(v); autoSave({ status: v }); };
+  const handleStatusChange = (v) => {
+    const reason = statusChangeDeniedReason(v);
+    if (reason) { toast?.error(reason); return; }
+    setStatus(v); autoSave({ status: v });
+  };
   const handleAssigneeChange = (m) => { if (!canEdit) return; setAssignee(m.name); setShowAssigneeDropdown(false); autoSave({ assignee: m.name }); };
   const handleDueDateChange = (v) => { if (!canEdit) return; setDueDate(v); autoSave({ dueDate: v }); };
   const handleEstHoursChange = (v) => { if (!canEdit) return; const n = parseFloat(v) || 0; setEstimatedHours(n); autoSave({ estimatedHours: n }); };

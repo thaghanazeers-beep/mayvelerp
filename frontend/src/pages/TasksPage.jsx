@@ -297,9 +297,25 @@ export default function TasksPage() {
     return true;
   };
 
+  // Returns a human-readable reason if the move is blocked, or null if allowed.
+  // Used to surface the same standard "you don't have permission" toast no
+  // matter how the move was triggered (dropdown, drag-drop, etc.).
+  const statusChangeDeniedReason = (task, newStatus) => {
+    if (!canEditTask(task)) {
+      return 'You don’t have permission to edit this task.';
+    }
+    if ((newStatus === 'Completed' || newStatus === 'Rejected') && !canApproveRejectTask(task)) {
+      return 'Only the teamspace owner (or a Super Admin) can move a task to Completed or Rejected.';
+    }
+    return null;
+  };
+
   const handleStatusChange = async (taskId, newStatus) => {
     const task = tasks.find(t => t.id === taskId);
-    if (task && !canChangeStatusTo(task, newStatus)) return;
+    if (task) {
+      const reason = statusChangeDeniedReason(task, newStatus);
+      if (reason) { toast?.error(reason); return; }
+    }
     try { await updateTask(taskId, { status: newStatus }); fetchTasks(); }
     catch (err) {
       console.error(err);
@@ -343,7 +359,9 @@ export default function TasksPage() {
     document.querySelectorAll('.board-column').forEach(col => col.classList.remove('drag-over'));
     const task = dragItem.current;
     if (task && task.status !== status) {
-      if (!canChangeStatusTo(task, status)) {
+      const reason = statusChangeDeniedReason(task, status);
+      if (reason) {
+        toast?.error(reason);
         dragItem.current = null;
         return;
       }
