@@ -206,14 +206,14 @@ router.get('/plans', async (req, res) => {
   const filter = { teamspaceId: tsId(req) };
   if (req.query.projectId) filter.projectId = req.query.projectId;
   if (req.query.status)    filter.status    = req.query.status;
-  // ?mine=1 → only plans created by the requesting user.
-  // ?awaitingMyApproval=1 → only plans pending approval on projects where the
-  // requester is the project owner (ProjectHoursPlan.createdBy stores the
-  // user's name, but approval routes use Project.ownerId).
+  // ?mine=1 → only plans created by the requesting user. Historically
+  // createdBy stored the email (`req.user.email`); newer rows may store the
+  // name. Match either so the user's history shows up regardless.
   if (req.query.mine === '1' || req.query.mine === 'true') {
-    const me = await User.findById(req.user.userId).select('name').lean();
-    if (me?.name) filter.createdBy = me.name;
-    else return ok(res, []);
+    const me = await User.findById(req.user.userId).select('email name').lean();
+    if (!me) return ok(res, []);
+    const candidates = [me.email, me.name].filter(Boolean);
+    filter.createdBy = { $in: candidates };
   }
   if (req.query.awaitingMyApproval === '1' || req.query.awaitingMyApproval === 'true') {
     filter.status = 'pending';
