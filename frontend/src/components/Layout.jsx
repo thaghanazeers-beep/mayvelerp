@@ -43,6 +43,7 @@ export default function Layout({ children, onToast }) {
   else if (path === '/dashboard')                 activePage = 'dashboard';
   else if (path === '/ai')                        activePage = 'ai';
   else if (path === '/help')                      activePage = 'help';
+  else if (path === '/access')                    activePage = 'access';
 
   const onNavigate = (page) => {
     const tsId = urlTeamspaceId; // when on /t/:tsId/*
@@ -53,6 +54,7 @@ export default function Layout({ children, onToast }) {
       case 'org-members':       navigate('/organization/members'); break;
       case 'ai':                navigate('/ai'); break;
       case 'help':              navigate('/help'); break;
+      case 'access':            navigate('/access'); break;
       case 'tasks':             navigate(`/t/${tsId}/tasks`); break;
       case 'projects':          navigate(`/t/${tsId}/projects`); break;
       case 'sprints':           navigate(`/t/${tsId}/sprints`); break;
@@ -315,6 +317,13 @@ export default function Layout({ children, onToast }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span>Help & Guide</span>
           </button>
+
+          {user?.isSuperAdmin && (
+            <button className={`sidebar-link ${activePage === 'access' ? 'active' : ''}`} onClick={() => onNavigate('access')} title="Manage user access levels (Super Admin only)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Access control</span>
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -337,7 +346,7 @@ export default function Layout({ children, onToast }) {
           <div className="header-right">
             <NotificationBell onToast={onToast} />
             <span className="header-user-name">{user?.name}</span>
-            <span className={`badge ${user?.role === 'Admin' ? 'badge-admin' : 'badge-member'}`}>{user?.role}</span>
+            <span className={`badge ${user?.role === 'Admin' ? 'badge-admin' : 'badge-member'}`}>{user?.isSuperAdmin ? 'Super Admin' : user?.role}</span>
             <div className="header-avatar" onClick={() => onNavigate('profile')} style={{ cursor: 'pointer' }}>
               {user?.profilePictureUrl ? <img src={signedFileUrl(user.profilePictureUrl)} alt={user.name} /> : <span>{user?.name?.charAt(0)?.toUpperCase()}</span>}
             </div>

@@ -5,6 +5,11 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true }, // Simple plain text for mock purposes
   role: { type: String, enum: ['Admin', 'Member'], default: 'Member' },
+  // Super Admin is a single workspace-owner user. They get every Admin
+  // privilege plus the ability to create / delete other users and change any
+  // user's role. A SuperAdmin always also has `role === 'Admin'`, so existing
+  // role checks throughout the codebase still pass for them.
+  isSuperAdmin: { type: Boolean, default: false },
   profilePictureUrl: { type: String },
   passwordResetToken: { type: String, index: true },
   passwordResetExpires: { type: Date },

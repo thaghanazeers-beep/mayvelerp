@@ -287,20 +287,57 @@ global.__createNotificationFiltered = createNotificationFiltered;
 Notification.createIfAllowed = (doc) => createNotificationFiltered(doc);
 
 // ==================== AUTH ROUTES ====================
-app.post('/api/auth/signup', async (req, res) => {
+// Public signup is disabled. Only a Super Admin can create new users (via the
+// admin user management page → POST /api/users). The route is left in place
+// returning 403 so old clients show a clear error instead of a silent 404.
+app.post('/api/auth/signup', (req, res) => {
+  res.status(403).json({ message: 'Public signup is disabled. Ask a Super Admin to add you.' });
+});
+
+// Super Admin–only: create a user with a chosen role. The caller must be
+// authenticated and have isSuperAdmin === true.
+app.post('/api/users', authenticate, async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'Email already exists' });
-    
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const { name, email, password, role } = req.body || {};
+    if (!name || !email || !password) return res.status(400).json({ message: 'name, email, password required' });
+    const normalized = String(email).trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return res.status(400).json({ message: 'Invalid email' });
+    const clash = await User.findOne({ email: normalized }).select('_id').lean();
+    if (clash) return res.status(409).json({ message: 'Email already in use' });
     const hashed = await hashPassword(password);
-    const user = new User({ name, email, password: hashed, role, profilePictureUrl: `https://i.pravatar.cc/150?u=${email}` });
-    await user.save();
-    const token = generateToken(user);
-    res.status(201).json({ user, token });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    const user = await User.create({
+      name, email: normalized, password: hashed,
+      role: ['Admin', 'Member'].includes(role) ? role : 'Member',
+      profilePictureUrl: `https://i.pravatar.cc/150?u=${normalized}`,
+    });
+    res.status(201).json(user);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Super Admin–only: list all users (for the access-level management page).
+app.get('/api/users', authenticate, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const users = await User.find({}).select('-password -passwordResetToken -passwordResetExpires').sort({ name: 1 }).lean();
+    res.json(users);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Super Admin–only: delete a user. Cannot delete yourself or other Super Admins.
+app.delete('/api/users/:id', authenticate, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    if (String(req.params.id) === String(req.user.userId)) return res.status(400).json({ message: "Can't delete yourself" });
+    const target = await User.findById(req.params.id).select('isSuperAdmin').lean();
+    if (target?.isSuperAdmin) return res.status(403).json({ message: "Can't delete another Super Admin" });
+    await User.findByIdAndDelete(req.params.id);
+    await TeamspaceMembership.deleteMany({ userId: req.params.id });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -618,8 +655,20 @@ app.post('/api/users/:id/avatar', upload.single('avatar'), async (req, res) => {
 });
 
 // Update user profile
-app.put('/api/users/:id', async (req, res) => {
+app.put('/api/users/:id', authenticate, async (req, res) => {
   try {
+    const callerId = String(req.user.userId);
+    const targetId = String(req.params.id);
+    const caller = await User.findById(callerId).select('isSuperAdmin').lean();
+    const isSelf = callerId === targetId;
+    if (!isSelf && !caller?.isSuperAdmin) return res.status(403).json({ error: 'Only the user themselves or a Super Admin can edit this profile.' });
+
+    // Strip privileged fields when the caller isn't a Super Admin.
+    if (!caller?.isSuperAdmin) {
+      delete req.body.role;
+      delete req.body.isSuperAdmin;
+    }
+
     if (req.body?.email) {
       const lower = String(req.body.email).trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lower)) return res.status(400).json({ error: 'Invalid email format' });

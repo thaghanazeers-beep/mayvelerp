@@ -94,6 +94,11 @@ export const uploadFile = (file) => {
 
 // Profile
 export const updateUser = (id, data) => API.put(`/users/${id}`, data);
+
+// Super Admin — user management
+export const listAllUsers   = ()           => API.get('/users');
+export const createUser     = (data)       => API.post('/users', data);
+export const deleteUserAccount = (id)      => API.delete(`/users/${id}`);
 export const uploadAvatar = (id, file) => {
   const formData = new FormData();
   formData.append('avatar', file);

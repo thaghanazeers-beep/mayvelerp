@@ -202,18 +202,6 @@ export default function AuthPage() {
         </form>
 
         <p className="auth-toggle">
-          {mode === 'login' && (
-            <>
-              Don't have an account?
-              <button onClick={() => switchMode('signup')}>Sign Up</button>
-            </>
-          )}
-          {mode === 'signup' && (
-            <>
-              Already have an account?
-              <button onClick={() => switchMode('login')}>Sign In</button>
-            </>
-          )}
           {(mode === 'forgot' || mode === 'reset') && (
             <>
               Remembered it?

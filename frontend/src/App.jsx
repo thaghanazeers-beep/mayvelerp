@@ -29,6 +29,7 @@ import WeekApprovalsPage from './pages/WeekApprovalsPage';
 import TimeDashboardPage from './pages/TimeDashboardPage';
 import ProjectPnLPage from './pages/ProjectPnLPage';
 import NotificationsPage from './pages/NotificationsPage';
+import AccessControlPage from './pages/AccessControlPage';
 import Layout from './components/Layout';
 
 // Sync the URL :teamspaceId param into TeamspaceContext.
@@ -86,6 +87,7 @@ function AppContent() {
         <Route path="/ai"                    element={bare(AiChatPage)} />
         <Route path="/help"                  element={bare(HelpPage)} />
         <Route path="/notifications" element={bare(NotificationsPage)} />
+        <Route path="/access"        element={bare(AccessControlPage)} />
 
         {/* Teamspace-scoped */}
         <Route path="/t/:teamspaceId"                              element={ts(TasksPage)} />
