@@ -7,6 +7,9 @@ const notificationSchema = new mongoose.Schema({
   taskId: { type: String },
   taskTitle: { type: String },
   userId: { type: String }, // recipient user ID (empty = broadcast to all)
+  // Which teamspace this notification belongs to. Denormalized so the sidebar
+  // can show per-teamspace unread counts without joining through Task.
+  teamspaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Teamspace', index: true },
   actorName: { type: String }, // who triggered the notification
   read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },

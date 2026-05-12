@@ -231,14 +231,19 @@ function sendNotificationEmail(userName, type, title, message, taskId) {
   }).catch(err => console.error('[email] notif send failed:', err.message));
 }
 
-async function createNotification({ type, title, message, taskId, taskTitle, userId, actorName }) {
+async function createNotification({ type, title, message, taskId, taskTitle, userId, actorName, teamspaceId }) {
   try {
     if (userId) {
       const target = await User.findOne({ name: userId }).select('notificationPrefs').lean();
       // Treat absence as enabled. Explicit `false` → mute.
       if (target?.notificationPrefs && target.notificationPrefs[type] === false) return null;
     }
-    const notif = new Notification({ type, title, message, taskId, taskTitle, userId, actorName });
+    // Denormalize teamspaceId from the task so the sidebar can count per-team.
+    let tsId = teamspaceId;
+    if (!tsId && taskId) {
+      try { const t = await Task.findOne({ id: taskId }).select('teamspaceId').lean(); tsId = t?.teamspaceId; } catch {}
+    }
+    const notif = new Notification({ type, title, message, taskId, taskTitle, userId, actorName, teamspaceId: tsId });
     await notif.save();
     if (userId) {
       sendPushToUser(userId, {
@@ -261,6 +266,10 @@ async function createNotificationFiltered(doc) {
     if (doc.userId) {
       const target = await User.findOne({ name: doc.userId }).select('notificationPrefs').lean();
       if (target?.notificationPrefs && target.notificationPrefs[doc.type] === false) return null;
+    }
+    // Denormalize teamspaceId from the task so the sidebar can count per-team.
+    if (!doc.teamspaceId && doc.taskId) {
+      try { const t = await Task.findOne({ id: doc.taskId }).select('teamspaceId').lean(); if (t?.teamspaceId) doc.teamspaceId = t.teamspaceId; } catch {}
     }
     const notif = await Notification.create(doc);
     if (doc.userId) {
@@ -1198,6 +1207,23 @@ app.get('/api/notifications/unread-count', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Per-teamspace unread counts for the sidebar bell icons.
+//   ?user=NAME → { teamspaceId: count, ... }   (omits the null/global bucket)
+app.get('/api/notifications/unread-by-teamspace', async (req, res) => {
+  try {
+    const { user } = req.query;
+    const match = { read: false, teamspaceId: { $ne: null } };
+    if (user) match.userId = user;
+    const rows = await Notification.aggregate([
+      { $match: match },
+      { $group: { _id: '$teamspaceId', count: { $sum: 1 } } },
+    ]);
+    const out = {};
+    rows.forEach(r => { if (r._id) out[String(r._id)] = r.count; });
+    res.json(out);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.put('/api/notifications/:id/read', async (req, res) => {

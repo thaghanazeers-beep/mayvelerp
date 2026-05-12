@@ -7,7 +7,7 @@ import NotificationBell from './NotificationBell';
 import WelcomeModal from './WelcomeModal';
 import CommandPalette from './CommandPalette';
 import './AiChat.css';      // for the .ai-chat-launcher button styles
-import { getTeamspaces, createTeamspace, createPersonalTeamspace, signedFileUrl } from '../api';
+import { getTeamspaces, createTeamspace, createPersonalTeamspace, signedFileUrl, getUnreadByTeamspace } from '../api';
 import './Layout.css';
 
 export default function Layout({ children, onToast }) {
@@ -78,6 +78,23 @@ export default function Layout({ children, onToast }) {
 
   const [expandedTs, setExpandedTs] = useState({});  // { tsId: true/false }
   const [tsMenu, setTsMenu] = useState(null);         // tsId for context menu
+  const [unreadByTs, setUnreadByTs] = useState({});   // { teamspaceId: unreadCount }
+
+  // Poll per-teamspace unread counts. Same 5s cadence as the global header
+  // bell so the numbers stay roughly in sync.
+  useEffect(() => {
+    if (!user?.name) return;
+    let alive = true;
+    const fetch = async () => {
+      try {
+        const r = await getUnreadByTeamspace(user.name);
+        if (alive) setUnreadByTs(r.data || {});
+      } catch {}
+    };
+    fetch();
+    const id = setInterval(fetch, 5000);
+    return () => { alive = false; clearInterval(id); };
+  }, [user?.name]);
   const menuRef = useRef(null);
   const [showTsModal, setShowTsModal] = useState(false);
   const [tsName, setTsName] = useState('');
@@ -279,6 +296,37 @@ export default function Layout({ children, onToast }) {
                     <span className="ts-tree-icon">{ts.isPersonal ? '👤' : (ts.icon || '🏢')}</span>
                     <span className="ts-tree-label">{ts.name}</span>
                   </button>
+                  {/* Per-teamspace notification bell. Shows a small unread badge
+                      when there are unread notifications scoped to this teamspace.
+                      Click → jumps to Notifications page (global view for now). */}
+                  {(() => {
+                    const count = unreadByTs[String(ts._id)] || 0;
+                    if (!count) return null;
+                    return (
+                      <button
+                        className="ts-tree-bell"
+                        onClick={(e) => { e.stopPropagation(); navigate('/notifications'); }}
+                        title={`${count} unread notification${count === 1 ? '' : 's'} in ${ts.name}`}
+                        style={{
+                          position: 'relative', display: 'flex', alignItems: 'center',
+                          background: 'none', border: 'none', padding: '4px',
+                          cursor: 'pointer', color: '#fdcb6e',
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0" fill="none"/>
+                        </svg>
+                        <span style={{
+                          position: 'absolute', top: -2, right: -2,
+                          background: '#e74c3c', color: 'white',
+                          fontSize: '9px', fontWeight: 700,
+                          minWidth: 14, height: 14, lineHeight: '14px',
+                          textAlign: 'center', padding: '0 3px',
+                          borderRadius: 7, border: '1px solid var(--bg-elevated)',
+                        }}>{count > 9 ? '9+' : count}</span>
+                      </button>
+                    );
+                  })()}
                   <button className="ts-tree-menu-btn" onClick={(e) => { e.stopPropagation(); setTsMenu(tsMenu === ts._id ? null : ts._id); }} title="Teamspace options">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                   </button>

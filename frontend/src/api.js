@@ -125,6 +125,7 @@ export const uploadAvatar = (id, file) => {
 // Notifications (filtered by user name)
 export const getNotifications = (userName) => API.get('/notifications', { params: { user: userName } });
 export const getUnreadCount = (userName) => API.get('/notifications/unread-count', { params: { user: userName } });
+export const getUnreadByTeamspace = (userName) => API.get('/notifications/unread-by-teamspace', { params: { user: userName } });
 export const markNotificationRead = (id) => API.put(`/notifications/${id}/read`);
 export const markAllNotificationsRead = (userName) => API.post('/notifications/mark-all-read', { user: userName });
 export const deleteNotification = (id) => API.delete(`/notifications/${id}`);
