@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getTeam, inviteUser, removeUser, updateUser, uploadAvatar, signedFileUrl } from '../api';
+import { getTeam, inviteUser, removeUser, updateUser, uploadAvatar, signedFileUrl, updateMembershipRole } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
 import { useToast } from '../context/ToastContext';
@@ -8,11 +8,13 @@ import './TeamPage.css';
 
 import { useTeamspace } from '../context/TeamspaceContext';
 
+const TS_ROLES = ['admin', 'member', 'viewer'];
+
 const ROLES = ['Member', 'Admin', 'Team Owner'];
 
 export default function TeamPage() {
   const { user } = useAuth();
-  const { activeTeamspaceId } = useTeamspace();
+  const { activeTeamspaceId, teamspaces } = useTeamspace();
   const { isManagement, getOrgRole, getManagerChain } = useOrg();
   const toast = useToast();
   const myId = user?._id || user?.id;
@@ -20,6 +22,12 @@ export default function TeamPage() {
   // Backend `PUT /api/users/:id` only lets SuperAdmin OR self edit. Gate the
   // Edit button accordingly so regular admins don't click into a 403.
   const canEditUser = (member) => user?.isSuperAdmin || String(member._id) === String(myId);
+  // Only the OWNER of the active teamspace (or SuperAdmin) can change another
+  // member's teamspace role. Matches the backend gate on
+  // PUT /api/admin/memberships/:id.
+  const activeTs = teamspaces?.find(t => String(t._id) === String(activeTeamspaceId));
+  const isTsOwner = !!activeTs && String(activeTs.ownerId) === String(myId);
+  const canManageRoles = isTsOwner || !!user?.isSuperAdmin;
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +109,22 @@ export default function TeamPage() {
       setInviteResult({ success: false, message: err.response?.data?.message || 'Failed to invite user' });
     } finally {
       setInviting(false);
+    }
+  };
+
+  // ── Change teamspace role ────────────────────────────────
+  const handleTsRoleChange = async (member, newRole) => {
+    if (!member.membershipId) {
+      toast?.error('No membership record found for this member');
+      return;
+    }
+    try {
+      await updateMembershipRole(member.membershipId, newRole);
+      toast?.success(`${member.name}: ${newRole}`);
+      fetchTeam();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to change role';
+      toast?.error(msg);
     }
   };
 
@@ -222,10 +246,21 @@ export default function TeamPage() {
                 </div>
                 <h3 className="team-name">{member.name}</h3>
                 <p className="team-email">{member.email}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                  <span className={`badge ${member.role === 'Admin' ? 'badge-admin' : member.role === 'Team Owner' ? 'badge-owner' : 'badge-member'}`}>
-                    {member.role}
-                  </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4, alignItems: 'center' }}>
+                  {canManageRoles && member.membershipId && String(member._id) !== String(myId) ? (
+                    <select
+                      value={member.role}
+                      onChange={(e) => handleTsRoleChange(member, e.target.value)}
+                      style={{ fontSize: '0.75rem', padding: '2px 6px', borderRadius: 6 }}
+                      title="Change teamspace role"
+                    >
+                      {TS_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  ) : (
+                    <span className={`badge ${member.role === 'admin' ? 'badge-admin' : 'badge-member'}`}>
+                      {member.role}
+                    </span>
+                  )}
                   {orgRole && (
                     <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--primary-light, #a78bfa)', padding: '2px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600 }}>{orgRole}</span>
                   )}
@@ -262,7 +297,13 @@ export default function TeamPage() {
                   {reportsTo && (
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>→ {reportsTo.name}</span>
                   )}
-                  <span className={`badge ${member.role === 'Admin' ? 'badge-admin' : member.role === 'Team Owner' ? 'badge-owner' : 'badge-member'}`}>{member.role}</span>
+                  {canManageRoles && member.membershipId && String(member._id) !== String(myId) ? (
+                    <select value={member.role} onChange={(e) => handleTsRoleChange(member, e.target.value)} style={{ fontSize: '0.75rem', padding: '2px 6px', borderRadius: 6 }}>
+                      {TS_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  ) : (
+                    <span className={`badge ${member.role === 'admin' ? 'badge-admin' : 'badge-member'}`}>{member.role}</span>
+                  )}
                   {isAdmin && canEditUser(member) && (
                     <div className="team-card-actions" style={{ marginLeft: 8 }}>
                       <button className="btn-icon team-edit" onClick={() => openEdit(member)} title="Edit" style={{ width: 28, height: 28 }}>
@@ -306,7 +347,13 @@ export default function TeamPage() {
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>{member.email}</td>
                     <td>
-                      <span className={`badge ${member.role === 'Admin' ? 'badge-admin' : member.role === 'Team Owner' ? 'badge-owner' : 'badge-member'}`}>{member.role}</span>
+                      {canManageRoles && member.membershipId && String(member._id) !== String(myId) ? (
+                        <select value={member.role} onChange={(e) => handleTsRoleChange(member, e.target.value)} style={{ fontSize: '0.78rem', padding: '2px 6px', borderRadius: 6 }}>
+                          {TS_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      ) : (
+                        <span className={`badge ${member.role === 'admin' ? 'badge-admin' : 'badge-member'}`}>{member.role}</span>
+                      )}
                     </td>
                     <td>
                       {orgRole ? (

@@ -261,6 +261,18 @@ A one-liner is fine. I'll repro and fill in details.
 
 ---
 
+### B054 — Teamspace owner could not change roles of their own team's members
+- **Status**: FIXED
+- **Severity**: P1
+- **Where**: [backend/server.js:377-446](backend/server.js#L377-L446) (membership routes), [frontend/src/pages/TeamPage.jsx](frontend/src/pages/TeamPage.jsx)
+- **What's wrong**: `GET/POST/PUT/DELETE /api/admin/memberships*` were gated on `isSuperAdmin` only. Pooja (owner of Marketing) could not promote/demote/remove Suha in her own teamspace — only Thagha (SuperAdmin) could. Worse, there was no UI for it on the Team page; the role column was a static badge.
+- **Fix**:
+  - Backend: replaced the SuperAdmin-only check with `isSuperAdmin || ownsTeamspace(me, membership.teamspaceId)`. `GET` now returns only memberships in teamspaces the owner owns; `POST`/`PUT`/`DELETE` enforce the same gate.
+  - Backend: `/api/team` now returns each member's `membershipId` so the UI has a stable handle.
+  - Frontend: TeamPage shows a `<select>` (admin/member/viewer) for the teamspace owner instead of a static badge. Calls `updateMembershipRole` with toast feedback.
+
+---
+
 ### B053 — TasksPage let global Admins flip In Review → Completed/Rejected (UI side of d58a1a4 backend rule)
 - **Status**: FIXED
 - **Severity**: P0

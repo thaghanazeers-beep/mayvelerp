@@ -372,13 +372,34 @@ app.delete('/api/users/:id', authenticate, async (req, res) => {
 
 // ── Super Admin: per-teamspace membership management ──
 // GET /api/admin/memberships
+// Membership management is open to two roles:
+//   (1) SuperAdmin — can manage every teamspace.
+//   (2) The owner of a teamspace — can manage memberships only in their own
+//       teamspace. Pre-fix this was locked to SuperAdmin only, leaving
+//       teamspace owners unable to promote/demote/remove their own team.
+async function membershipAuth(req, opts = {}) {
+  const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+  return { me, isSuper: !!me?.isSuperAdmin };
+}
+async function ownsTeamspace(userId, teamspaceId) {
+  if (!teamspaceId) return false;
+  const ts = await Teamspace.findById(teamspaceId).select('ownerId').lean();
+  return !!ts && String(ts.ownerId) === String(userId);
+}
+
 //   Returns every (user × teamspace × role) row with both sides populated so
-//   the Access Control page can render a single matrix.
+//   the Access Control page can render a single matrix. SuperAdmin sees all
+//   rows; a teamspace owner sees only rows for teamspaces they own.
 app.get('/api/admin/memberships', authenticate, async (req, res) => {
   try {
-    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
-    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
-    const rows = await TeamspaceMembership.find({})
+    const { me, isSuper } = await membershipAuth(req);
+    let filter = {};
+    if (!isSuper) {
+      const owned = await Teamspace.find({ ownerId: me._id }).select('_id').lean();
+      if (!owned.length) return res.status(403).json({ message: 'Not allowed' });
+      filter = { teamspaceId: { $in: owned.map(t => t._id) } };
+    }
+    const rows = await TeamspaceMembership.find(filter)
       .populate('userId', 'name email role isSuperAdmin')
       .populate('teamspaceId', 'name icon isPersonal ownerId')
       .lean();
@@ -390,10 +411,12 @@ app.get('/api/admin/memberships', authenticate, async (req, res) => {
 //   Body: { userId, teamspaceId, role }. Idempotent on (userId, teamspaceId).
 app.post('/api/admin/memberships', authenticate, async (req, res) => {
   try {
-    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
-    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const { me, isSuper } = await membershipAuth(req);
     const { userId, teamspaceId, role } = req.body || {};
     if (!userId || !teamspaceId) return res.status(400).json({ error: 'userId + teamspaceId required' });
+    if (!isSuper && !(await ownsTeamspace(me._id, teamspaceId))) {
+      return res.status(403).json({ message: 'Only the teamspace owner or a Super Admin can manage members.' });
+    }
     const r = ['admin', 'member', 'viewer'].includes(role) ? role : 'member';
     const upserted = await TeamspaceMembership.findOneAndUpdate(
       { userId, teamspaceId },
@@ -407,12 +430,15 @@ app.post('/api/admin/memberships', authenticate, async (req, res) => {
 // PUT /api/admin/memberships/:id  → change role only
 app.put('/api/admin/memberships/:id', authenticate, async (req, res) => {
   try {
-    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
-    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const { me, isSuper } = await membershipAuth(req);
     const { role } = req.body || {};
     if (!['admin', 'member', 'viewer'].includes(role)) return res.status(400).json({ error: 'role must be admin / member / viewer' });
+    const existing = await TeamspaceMembership.findById(req.params.id).lean();
+    if (!existing) return res.status(404).json({ error: 'Membership not found' });
+    if (!isSuper && !(await ownsTeamspace(me._id, existing.teamspaceId))) {
+      return res.status(403).json({ message: 'Only the teamspace owner or a Super Admin can manage members.' });
+    }
     const updated = await TeamspaceMembership.findByIdAndUpdate(req.params.id, { role }, { new: true });
-    if (!updated) return res.status(404).json({ error: 'Membership not found' });
     res.json(updated);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -420,8 +446,12 @@ app.put('/api/admin/memberships/:id', authenticate, async (req, res) => {
 // DELETE /api/admin/memberships/:id  → remove from teamspace
 app.delete('/api/admin/memberships/:id', authenticate, async (req, res) => {
   try {
-    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
-    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const { me, isSuper } = await membershipAuth(req);
+    const existing = await TeamspaceMembership.findById(req.params.id).lean();
+    if (!existing) return res.json({ success: true });
+    if (!isSuper && !(await ownsTeamspace(me._id, existing.teamspaceId))) {
+      return res.status(403).json({ message: 'Only the teamspace owner or a Super Admin can manage members.' });
+    }
     await TeamspaceMembership.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -642,13 +672,16 @@ app.get('/api/team', requireTeamspaceMembership, async (req, res) => {
     const memberships = await TeamspaceMembership.find({ teamspaceId, status: 'active' })
       .populate('userId', '-password');
       
-    // Format response to match the expected team member array
+    // Format response to match the expected team member array. We also expose
+    // the membership document's _id as `membershipId` so the UI can call
+    // PUT/DELETE /api/admin/memberships/:id (now allowed for teamspace owners
+    // — see /api/admin/memberships routes).
     const team = memberships.map(m => {
       if (!m.userId) return null;
-      return {
-        ...m.userId.toObject(),
-        role: m.role
-      };
+      const obj = m.userId.toObject();
+      obj.role = m.role;                  // teamspace role: admin/member/viewer
+      obj.membershipId = String(m._id);
+      return obj;
     }).filter(Boolean);
 
     res.json(team);
