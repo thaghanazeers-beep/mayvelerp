@@ -340,6 +340,63 @@ app.delete('/api/users/:id', authenticate, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Super Admin: per-teamspace membership management ──
+// GET /api/admin/memberships
+//   Returns every (user × teamspace × role) row with both sides populated so
+//   the Access Control page can render a single matrix.
+app.get('/api/admin/memberships', authenticate, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const rows = await TeamspaceMembership.find({})
+      .populate('userId', 'name email role isSuperAdmin')
+      .populate('teamspaceId', 'name icon isPersonal ownerId')
+      .lean();
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/admin/memberships
+//   Body: { userId, teamspaceId, role }. Idempotent on (userId, teamspaceId).
+app.post('/api/admin/memberships', authenticate, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const { userId, teamspaceId, role } = req.body || {};
+    if (!userId || !teamspaceId) return res.status(400).json({ error: 'userId + teamspaceId required' });
+    const r = ['admin', 'member', 'viewer'].includes(role) ? role : 'member';
+    const upserted = await TeamspaceMembership.findOneAndUpdate(
+      { userId, teamspaceId },
+      { $set: { role: r, status: 'active' }, $setOnInsert: { joinedAt: new Date() } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.status(201).json(upserted);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT /api/admin/memberships/:id  → change role only
+app.put('/api/admin/memberships/:id', authenticate, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    const { role } = req.body || {};
+    if (!['admin', 'member', 'viewer'].includes(role)) return res.status(400).json({ error: 'role must be admin / member / viewer' });
+    const updated = await TeamspaceMembership.findByIdAndUpdate(req.params.id, { role }, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Membership not found' });
+    res.json(updated);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/admin/memberships/:id  → remove from teamspace
+app.delete('/api/admin/memberships/:id', authenticate, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+    if (!me?.isSuperAdmin) return res.status(403).json({ message: 'Super Admin only' });
+    await TeamspaceMembership.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;

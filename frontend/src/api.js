@@ -108,6 +108,12 @@ export const updateUser = (id, data) => API.put(`/users/${id}`, data);
 export const listAllUsers   = ()           => API.get('/users');
 export const createUser     = (data)       => API.post('/users', data);
 export const deleteUserAccount = (id)      => API.delete(`/users/${id}`);
+
+// Super Admin — per-teamspace membership management
+export const listAllMemberships  = ()             => API.get('/admin/memberships');
+export const upsertMembership    = (data)         => API.post('/admin/memberships', data);  // {userId, teamspaceId, role}
+export const updateMembershipRole = (id, role)    => API.put(`/admin/memberships/${id}`, { role });
+export const removeMembership    = (id)           => API.delete(`/admin/memberships/${id}`);
 export const uploadAvatar = (id, file) => {
   const formData = new FormData();
   formData.append('avatar', file);
