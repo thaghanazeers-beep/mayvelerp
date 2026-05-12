@@ -128,8 +128,11 @@ export default function PlanEditorPage() {
   const handleDeleteLine = async (line) => {
     if (!editable) return;
     if (!confirm(`Delete line "${line.taskType}"?`)) return;
-    await deletePlanLine(planId, line._id);
-    await reload();
+    try {
+      await deletePlanLine(planId, line._id);
+      await reload();
+      toast.success('Line deleted');
+    } catch (e) { toast.error(e.response?.data?.error || e.message || 'Failed to delete line'); }
   };
 
   // ─── Workflow ───
@@ -181,8 +184,12 @@ export default function PlanEditorPage() {
   };
   const handleDeletePlan = async () => {
     if (!confirm(`Delete plan "${plan.title}"? This also removes all its lines.`)) return;
-    await deletePlan(planId);
-    navigate(`/t/${activeTeamspaceId}/time/plans`);
+    try {
+      await deletePlan(planId);
+      navigate(`/t/${activeTeamspaceId}/time/plans`);
+    } catch (e) {
+      toast.error(e.response?.data?.error || e.message || 'Failed to delete plan');
+    }
   };
 
   const memberName = (id) => members.find(m => m._id === id)?.name || '—';

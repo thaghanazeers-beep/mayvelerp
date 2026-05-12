@@ -50,7 +50,10 @@ export default function AuthPage() {
         const res = await login(email, password);
         loginUser(res.data);
       } else if (mode === 'signup') {
-        const res = await signup(name, email, password, 'Admin');
+        // Public signup is disabled at the backend (403). If a future change
+        // re-enables it, default new accounts to 'Member' so a stranger can't
+        // hand themselves Admin power.
+        const res = await signup(name, email, password, 'Member');
         loginUser(res.data);
       } else if (mode === 'forgot') {
         const res = await forgotPassword(email);

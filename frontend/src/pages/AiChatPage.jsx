@@ -60,6 +60,14 @@ export default function AiChatPage() {
   const [menuId, setMenuId] = useState(null);     // which row's "..." menu is open
   const scrollRef = useRef(null);
   const menuRef = useRef(null);
+  // Holds the close-fn of the active stream so we can abort on unmount or
+  // when the user navigates to a different conversation mid-response.
+  const streamCloserRef = useRef(null);
+  const abortStream = () => {
+    try { streamCloserRef.current?.(); } catch {}
+    streamCloserRef.current = null;
+  };
+  useEffect(() => () => abortStream(), []); // clean up on unmount
 
   // Persist on every change
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }, [store]);
@@ -81,12 +89,16 @@ export default function AiChatPage() {
 
   // ─── Conversation actions ───
   const newChat = () => {
+    abortStream();              // don't keep streaming tokens into the old chat
+    setBusy(false);
     setStore(s => ({ ...s, activeId: null }));
     setInput('');
     setError('');
     setMenuId(null);
   };
   const switchTo = (id) => {
+    abortStream();
+    setBusy(false);
     setStore(s => ({ ...s, activeId: id }));
     setError('');
   };
@@ -164,7 +176,9 @@ export default function AiChatPage() {
       }));
     };
 
-    streamChat(optimistic, activeTeamspaceId, {
+    // Abort any in-flight stream before starting a new one
+    abortStream();
+    streamCloserRef.current = streamChat(optimistic, activeTeamspaceId, {
       onToken: ({ text: chunk }) => {
         accumulated += chunk;
         updateLast({ text: accumulated });
@@ -173,10 +187,11 @@ export default function AiChatPage() {
         toolCalls.push(tool);
         updateLast({ toolCalls: [...toolCalls] });
       },
-      onDone: () => { setBusy(false); },
+      onDone: () => { setBusy(false); streamCloserRef.current = null; },
       onError: ({ message }) => {
         setError(message || 'Stream failed');
         setBusy(false);
+        streamCloserRef.current = null;
       },
     });
   };

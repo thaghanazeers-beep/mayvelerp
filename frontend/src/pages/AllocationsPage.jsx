@@ -62,16 +62,24 @@ export default function AllocationsPage() {
 
   const planEditable = plan.status === 'approved';   // owner can re-tweak only after approval
 
-  const handleEdit = async (alloc, value) => {
+  const handleEdit = async (alloc, value, inputEl) => {
     const newHours = Number(value);
-    if (Number.isNaN(newHours) || newHours < 0) return;
+    if (Number.isNaN(newHours) || newHours < 0) {
+      // Reset the uncontrolled input so the user doesn't keep seeing their
+      // invalid value while the saved state is something else.
+      if (inputEl) inputEl.value = alloc.allocatedHours;
+      setError('Allocated hours must be a non-negative number');
+      return;
+    }
     setError('');
-    // Optimistic
     setAllocs(prev => prev.map(a => a._id === alloc._id ? { ...a, allocatedHours: newHours, remainingHours: newHours - a.consumedHours } : a));
     try {
       await updateAllocation(alloc._id, { allocatedHours: newHours });
     } catch (e) {
       setError(e.response?.data?.error || e.message);
+      // Roll back the input visually (uncontrolled defaultValue won't repaint
+      // on reload alone) and refetch server state.
+      if (inputEl) inputEl.value = alloc.allocatedHours;
       reload();
     }
   };
@@ -136,7 +144,7 @@ export default function AllocationsPage() {
                             type="number" min="0" step="0.25"
                             disabled={!planEditable}
                             defaultValue={a.allocatedHours}
-                            onBlur={e => Number(e.target.value) !== a.allocatedHours && handleEdit(a, e.target.value)}
+                            onBlur={e => Number(e.target.value) !== a.allocatedHours && handleEdit(a, e.target.value, e.target)}
                             title={`consumed: ${a.consumedHours}h · remaining: ${remaining}h`}
                           />
                         </td>

@@ -803,7 +803,19 @@ router.post('/plans/:id/reopen', async (req, res) => {
 
   const project = await Project.findById(plan.projectId);
   const isOwner = project && String(project.ownerId) === String(req.user.userId);
-  if (!isOwner && !isAdmin(req)) return fail(res, 'Only owner or admin can reopen', 403);
+  // Admin path here must be scoped to the plan's teamspace, otherwise a global
+  // "Admin" user from a different teamspace can reopen rejected plans they
+  // shouldn't see at all. SuperAdmin is allowed everywhere.
+  const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
+  const isSuper = !!me?.isSuperAdmin;
+  let isTeamspaceAdmin = false;
+  if (!isOwner && !isSuper) {
+    const m = await TeamspaceMembership.findOne({
+      teamspaceId: plan.teamspaceId, userId: req.user.userId, role: 'admin', status: 'active',
+    }).lean();
+    isTeamspaceAdmin = !!m;
+  }
+  if (!isOwner && !isSuper && !isTeamspaceAdmin) return fail(res, 'Only owner or admin can reopen', 403);
 
   const before = { status: plan.status };
   plan.status          = 'draft';
