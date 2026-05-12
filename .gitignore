@@ -73,3 +73,6 @@ backup.sh
 
 # OS
 Thumbs.db
+
+# Word lock files (created when doc is open)
+~$*.docx
