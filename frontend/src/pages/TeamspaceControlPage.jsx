@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { getTeamspaces, createTeamspace, updateTeamspace, deleteTeamspace } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { useToast } from '../context/ToastContext';
 
 const ICONS = ['🏢', '🚀', '🎨', '💻', '📊', '🔬', '📱', '🎯', '⚡', '🌟', '🎮', '📈', '🛠️', '🏗️', '🧪', '📝'];
 
 export default function TeamspaceControlPage() {
   const { user } = useAuth();
   const { activeTeamspaceId, setActiveTeamspaceId, teamspaces, refreshTeamspaces } = useTeamspace();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('🏢');
@@ -29,9 +31,9 @@ export default function TeamspaceControlPage() {
       setLoading(true);
       await updateTeamspace(activeTeamspaceId, { name, icon, description });
       await refreshTeamspaces();
-      alert('Teamspace settings updated successfully');
-    } catch { 
-      alert('Failed to update teamspace'); 
+      toast?.success('Teamspace settings updated');
+    } catch (e) {
+      toast?.error(e.response?.data?.error || e.response?.data?.message || 'Failed to update teamspace');
     } finally {
       setLoading(false);
     }
@@ -46,8 +48,9 @@ export default function TeamspaceControlPage() {
       await deleteTeamspace(activeTeamspaceId);
       setActiveTeamspaceId('');
       await refreshTeamspaces();
-    } catch { 
-      alert('Failed to delete teamspace'); 
+      toast?.success('Teamspace deleted');
+    } catch (e) {
+      toast?.error(e.response?.data?.error || e.response?.data?.message || 'Failed to delete teamspace');
     } finally {
       setLoading(false);
     }

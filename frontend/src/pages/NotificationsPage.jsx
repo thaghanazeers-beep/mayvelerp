@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { useToast } from '../context/ToastContext';
 import './NotificationsPage.css';
 
 const NOTIF_ICONS = {
@@ -44,6 +45,7 @@ export default function NotificationsPage() {
   const { user } = useAuth();
   const { activeTeamspaceId } = useTeamspace();
   const navigate = useNavigate();
+  const toast = useToast();
   const [list, setList] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,7 @@ export default function NotificationsPage() {
   const reload = async () => {
     setLoading(true);
     try { const r = await getNotifications(user?.name); setList(r.data); }
+    catch (e) { toast?.error(e.response?.data?.error || 'Failed to load notifications'); }
     finally { setLoading(false); }
   };
   useEffect(() => { if (user?.name) reload(); }, [user?.name]);
@@ -67,19 +70,31 @@ export default function NotificationsPage() {
 
   const handleClick = async (n) => {
     if (!n.read) {
-      await markNotificationRead(n._id);
-      setList(prev => prev.map(x => x._id === n._id ? { ...x, read: true } : x));
+      try {
+        await markNotificationRead(n._id);
+        setList(prev => prev.map(x => x._id === n._id ? { ...x, read: true } : x));
+      } catch (e) {
+        toast?.error(e.response?.data?.error || 'Failed to mark notification as read');
+      }
     }
     if (n.taskId && activeTeamspaceId) navigate(`/t/${activeTeamspaceId}/tasks/${n.taskId}`);
   };
   const handleMarkAll = async () => {
     if (unreadCount === 0) return;
-    await markAllNotificationsRead(user?.name);
-    setList(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      await markAllNotificationsRead(user?.name);
+      setList(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (e) {
+      toast?.error(e.response?.data?.error || 'Failed to mark all as read');
+    }
   };
   const handleDelete = async (id) => {
-    await deleteNotification(id);
-    setList(prev => prev.filter(n => n._id !== id));
+    try {
+      await deleteNotification(id);
+      setList(prev => prev.filter(n => n._id !== id));
+    } catch (e) {
+      toast?.error(e.response?.data?.error || 'Failed to delete notification');
+    }
   };
 
   // Group by day for nicer rendering

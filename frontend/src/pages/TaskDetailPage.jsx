@@ -187,7 +187,7 @@ export default function TaskDetailPage({ task, onBack, onUpdated }) {
   const saveTimer = useRef(null);
   const fileInputRef = useRef(null);
 
-  useEffect(() => { loadTeam(); loadProjects(); loadSprints(); loadChildTasks(); }, []);
+  useEffect(() => { loadTeam(); loadProjects(); loadSprints(); loadChildTasks(); }, [activeTeamspaceId, task?.id]);
   useEffect(() => { if (titleRef.current && !task) titleRef.current.focus(); }, []);
 
   const loadTeam = async () => { try { const r = await getTeam(activeTeamspaceId); setTeamMembers(r.data); } catch {} };

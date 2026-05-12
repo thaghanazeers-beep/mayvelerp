@@ -139,28 +139,35 @@ A one-liner is fine. I'll repro and fill in details.
 
 ---
 
-### B020 — NotificationsPage swallows API failures while still mutating UI
-- **Status**: OPEN
+### B012 — TaskDetailPage loaders never re-run if active teamspace changes
+- **Status**: FIXED
 - **Severity**: P2
-- **Where**: [frontend/src/pages/NotificationsPage.jsx:68-83](frontend/src/pages/NotificationsPage.jsx#L68-L83)
-- **What's wrong**: `handleClick`, `handleMarkAll`, `handleDelete` all `await` without try/catch and then update state. Server failures lie to the user (bell count desyncs after refresh).
-- **Fix sketch**: Wrap each in try/catch and toast on failure.
+- **Where**: [frontend/src/pages/TaskDetailPage.jsx:190](frontend/src/pages/TaskDetailPage.jsx#L190)
+- **Fix**: Added `[activeTeamspaceId, task?.id]` to the useEffect deps so loaders re-run on teamspace switch / task swap.
+
+---
+
+### B020 — NotificationsPage swallows API failures while still mutating UI
+- **Status**: FIXED
+- **Severity**: P2
+- **Where**: [frontend/src/pages/NotificationsPage.jsx](frontend/src/pages/NotificationsPage.jsx)
+- **Fix**: Wrapped `handleClick`, `handleMarkAll`, `handleDelete`, `reload` in try/catch. Toast surfaces the actual error. Optimistic UI update now only fires after the API call succeeds.
 
 ---
 
 ### B021 — TeamspaceControlPage error handling drops server message
-- **Status**: OPEN
+- **Status**: FIXED
 - **Severity**: P2
 - **Where**: [frontend/src/pages/TeamspaceControlPage.jsx](frontend/src/pages/TeamspaceControlPage.jsx)
-- **Fix sketch**: Replace `alert('Failed to update teamspace')` with `toast.error(e.response?.data?.error || e.message)`.
+- **Fix**: Swapped bare `alert('Failed to...')` for `toast.error(e.response?.data?.error || e.message)`. Success path now toasts too.
 
 ---
 
 ### B022 — OrgChartPage member dropdown missing teamspace context
-- **Status**: OPEN
+- **Status**: FIXED
 - **Severity**: P2
-- **Where**: [frontend/src/pages/OrgChartPage.jsx](frontend/src/pages/OrgChartPage.jsx) (~line 75)
-- **Fix sketch**: `getTeam(activeTeamspaceId)` with `activeTeamspaceId` in the dep array.
+- **Where**: [frontend/src/pages/OrgChartPage.jsx:75-77](frontend/src/pages/OrgChartPage.jsx#L75-L77)
+- **Fix**: `getTeam(activeTeamspaceId)` and `activeTeamspaceId` added to the dep array.
 
 ---
 

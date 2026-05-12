@@ -71,10 +71,13 @@ export default function OrgChartPage() {
   const [newDept, setNewDept] = useState('');
   const [newMemberId, setNewMemberId] = useState('');
 
-  // Load team members
+  // Load team members for the active teamspace. Without the active id the
+  // backend falls back to defaults and the "Link to member" dropdown ends up
+  // listing the wrong people.
   useEffect(() => {
-    getTeam().then(res => setMembers(res.data)).catch(() => {});
-  }, []);
+    if (!activeTeamspaceId) return;
+    getTeam(activeTeamspaceId).then(res => setMembers(res.data)).catch(() => {});
+  }, [activeTeamspaceId]);
 
   // Load chart from backend on mount / teamspace change
   useEffect(() => {
