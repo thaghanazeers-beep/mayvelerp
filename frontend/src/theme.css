@@ -69,13 +69,92 @@
   --glass-shadow:     0 8px 32px rgba(0, 0, 0, 0.45),
                       0 1px 0 rgba(255, 255, 255, 0.04) inset;
 
-  /* ───── RADII (kept from existing system) ───── */
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
+  /* ───── SPACING (8-px grid + 4-px half-step) ───── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+
+  /* ───── RADII ───── */
+  --radius-xs:   6px;
+  --radius-sm:   10px;
+  --radius-md:   14px;
+  --radius-lg:   18px;
+  --radius-xl:   24px;
   --radius-full: 9999px;
 
-  /* ───── BACKWARD-COMPAT ALIASES (so existing CSS keeps working) ───── */
+  /* ───── ELEVATION (Material-3-inspired, dark-mode tuned) ───── */
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgba(0,0,0,0.4),  0 0 0 1px rgba(255,255,255,0.02);
+  --elev-2: 0 2px 4px rgba(0,0,0,0.5),  0 0 0 1px rgba(255,255,255,0.03);
+  --elev-3: 0 8px 16px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04);
+  --elev-4: 0 16px 32px rgba(0,0,0,0.55),0 4px 8px rgba(0,0,0,0.4),  0 0 0 1px rgba(255,255,255,0.04);
+  --elev-5: 0 24px 48px rgba(0,0,0,0.65),0 0 0 1px rgba(255,255,255,0.05);
+  --shadow-xs:   var(--elev-1);
+  --shadow-sm:   var(--elev-2);
+  --shadow-md:   var(--elev-3);
+  --shadow-lg:   var(--elev-4);
+  --shadow-xl:   var(--elev-5);
+  --shadow-glow: 0 0 32px var(--color-primary-glow);
+
+  /* ───── MOTION ───── */
+  --easing-standard:    cubic-bezier(0.2, 0, 0, 1);
+  --easing-emphasized:  cubic-bezier(0.2, 0, 0, 1);
+  --easing-decelerated: cubic-bezier(0, 0, 0, 1);
+  --transition-fast:    150ms var(--easing-standard);
+  --transition:         220ms var(--easing-standard);
+  --transition-slow:    350ms var(--easing-emphasized);
+
+  /* ───── EXTRA SURFACES (used by components) ───── */
+  --bg-card:     rgba(20, 20, 20, 0.88);
+  --bg-input:    rgba(8, 8, 8, 0.7);
+  --bg-selected: rgba(184, 255, 3, 0.06);
+  --border-default: rgba(240, 246, 252, 0.10);
+
+  /* ───── BACKWARD-COMPAT ALIASES (legacy + extra accents) ───── */
+  --accent-green: var(--color-success);
+  --accent-orange: var(--color-warning);
+  --accent-red:    var(--color-danger);
+  --accent-blue:   var(--color-info);
+  --accent-purple: #a29bfe;
+  --accent-cyan:   #00d4ff;
+  --accent-pink:   #bc8cff;
+  --border-light:  var(--color-border-strong);
+  --text-link:     var(--color-text-accent);
+  --text-link-hover: var(--color-primary-hover);
+
+  /* Legacy font-size-* names — alias to new --text-* scale */
+  --font-size-2xs:  var(--text-xs);
+  --font-size-xs:   var(--text-xs);
+  --font-size-sm:   var(--text-sm);
+  --font-size-base: var(--text-base);
+  --font-size-lg:   var(--text-lg);
+  --font-size-xl:   var(--text-xl);
+  --font-size-2xl:  var(--text-2xl);
+  --font-size-3xl:  var(--text-3xl);
+  --font-size-4xl:  var(--text-4xl);
+
+  --line-height-tight:   var(--leading-tight);
+  --line-height-snug:    1.35;
+  --line-height-normal:  var(--leading-normal);
+  --line-height-relaxed: var(--leading-relaxed);
+
+  --font-weight-regular: var(--weight-regular);
+  --font-weight-medium:  var(--weight-medium);
+  --font-weight-semi:    var(--weight-semi);
+  --font-weight-bold:    var(--weight-bold);
+  --font-weight-black:   800;
+
+  --font-family-body:    var(--font-family);
+  --font-family-heading: var(--font-family-display);
+
+  /* ───── PRIMARY/TEXT ALIASES (so existing components keep working) ───── */
   --primary:          var(--color-primary);
   --primary-light:    var(--color-primary-hover);
   --primary-dark:     var(--color-primary-dark);
@@ -116,4 +195,21 @@
   --glass-border: rgba(0, 0, 0, 0.06);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
                   0 1px 0 rgba(255, 255, 255, 0.9) inset;
+
+  /* Surface + elevation retuned for white surfaces */
+  --bg-card:     #ffffff;
+  --bg-input:    #ffffff;
+  --bg-selected: rgba(184, 255, 3, 0.18);
+  --border-default: rgba(0, 0, 0, 0.10);
+
+  --shadow-xs: 0 1px 2px  rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px  rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.14);
+  --elev-1: 0 1px 2px rgba(0,0,0,0.04),   0 0 0 1px rgba(0,0,0,0.04);
+  --elev-2: 0 2px 6px rgba(0,0,0,0.06),   0 0 0 1px rgba(0,0,0,0.05);
+  --elev-3: 0 8px 16px rgba(0,0,0,0.08),  0 2px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.05);
+  --elev-4: 0 16px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
+  --elev-5: 0 24px 48px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.05);
 }
