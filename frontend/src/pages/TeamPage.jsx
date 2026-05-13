@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
 import { useToast } from '../context/ToastContext';
 import ViewTabs from '../components/ViewTabs';
+import { PageIntro } from '../components/PageIntro';
 import './TeamPage.css';
 
 import { useTeamspace } from '../context/TeamspaceContext';
@@ -194,11 +195,28 @@ export default function TeamPage() {
 
   return (
     <div className="team-page">
-      <ViewTabs 
-        views={views} 
-        activeViewId={activeViewId} 
-        onChangeView={setActiveViewId} 
-        onAddView={handleAddView} 
+      <PageIntro
+        icon="👥"
+        title="Team"
+        actor="Teamspace Owner / Admins"
+        purpose="Everyone in this teamspace — their role, their workload, and how to reach them. Invite new members or change roles from here."
+        storageKey="team-page"
+        youCanDo={[
+          'Invite a member by email — they get a sign-up link',
+          'Change someone\'s role (Member, Admin, Owner) — affects what they can edit and approve',
+          'Remove a member from the teamspace (their work history stays)',
+        ]}
+        whatHappensNext={[
+          'Invite sent → recipient receives an email; once they sign up they appear here as Active',
+          'Promote to Admin → they can manage projects, plans, and other members',
+          'Promote to Owner → they can approve plans and tasks (only one Owner per teamspace by default)',
+        ]}
+      />
+      <ViewTabs
+        views={views}
+        activeViewId={activeViewId}
+        onChangeView={setActiveViewId}
+        onAddView={handleAddView}
       />
 
       <div className="team-toolbar" style={{ paddingTop: 0, gap: 12 }}>
@@ -262,7 +280,7 @@ export default function TeamPage() {
                     </span>
                   )}
                   {orgRole && (
-                    <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--primary-light, #a78bfa)', padding: '2px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600 }}>{orgRole}</span>
+                    <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--text-accent)', padding: '2px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600 }}>{orgRole}</span>
                   )}
                 </div>
                 {reportsTo && (
@@ -292,7 +310,7 @@ export default function TeamPage() {
                 </div>
                 <div className="list-item-right" style={{ gap: 8 }}>
                   {orgRole && (
-                    <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--primary-light, #a78bfa)', padding: '2px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600 }}>{orgRole}</span>
+                    <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--text-accent)', padding: '2px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 600 }}>{orgRole}</span>
                   )}
                   {reportsTo && (
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>→ {reportsTo.name}</span>
@@ -357,7 +375,7 @@ export default function TeamPage() {
                     </td>
                     <td>
                       {orgRole ? (
-                        <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--primary-light, #a78bfa)', padding: '2px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600 }}>{orgRole}</span>
+                        <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--text-accent)', padding: '2px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600 }}>{orgRole}</span>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>
                       )}

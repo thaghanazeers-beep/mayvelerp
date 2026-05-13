@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useOrg } from '../context/OrgContext';
 import { MAYVEL_ORG_CHART, CHART_VERSION } from '../data/mayvelOrgChart';
+import { PageIntro } from '../components/PageIntro';
 import './OrgChartPage.css';
 
 const ROLE_COLORS = {
@@ -329,6 +330,23 @@ export default function OrgChartPage() {
 
   return (
     <div className="orgchart-page">
+      <PageIntro
+        icon="🌳"
+        title="Organisation chart"
+        actor="Everyone (Super Admin edits)"
+        purpose="A visual map of the company — who reports to whom, which teamspace each person belongs to. Drag nodes around to redraw, or just browse to understand the hierarchy."
+        storageKey="org-chart"
+        youCanDo={[
+          'Click a node to see that person\'s role, teamspace, and contact info',
+          'Drag nodes to rearrange (Super Admin only — others see read-only)',
+          'Save changes to make the new layout the canonical chart',
+        ]}
+        whatHappensNext={[
+          'Saving → the new chart is the source of truth for every member\'s manager line',
+          'Approval routing on tasks/plans can be configured to follow this chart',
+          'If a person isn\'t on the chart → add them via Organisation Members first',
+        ]}
+      />
       {/* Toolbar */}
       <div className="orgchart-toolbar">
         <div className="orgchart-toolbar-left">
@@ -568,14 +586,14 @@ export default function OrgChartPage() {
 
       {/* ─── Legend ─── */}
       <div className="orgchart-legend">
-        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6, display: 'block' }}>Legend</span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 6, display: 'block' }}>Legend</span>
         {Object.entries(ROLE_COLORS).slice(0, 8).map(([role, c]) => (
           <div key={role} className="orgchart-legend-item">
             <span className="orgchart-legend-dot" style={{ background: c.border }} />
             <span>{role}</span>
           </div>
         ))}
-        <div style={{ marginTop: 12, fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        <div style={{ marginTop: 12, fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           <div>🖱 Click node → edit</div>
           <div>🖱 Drag to move</div>
           <div>🖱 Scroll to zoom</div>

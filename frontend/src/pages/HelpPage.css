@@ -37,7 +37,7 @@
 }
 .help-toc-head p {
   margin: 2px 0 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
 .help-search {
@@ -61,7 +61,7 @@
   font-size: 0.78rem;
   outline: none;
 }
-.help-search input:focus { border-color: var(--primary); }
+.help-search input:focus { border-color: var(--text-accent); }
 
 .help-toc-list {
   flex: 1;
@@ -169,7 +169,7 @@
 }
 .help-quick-btn:hover {
   background: var(--bg-hover);
-  border-color: var(--primary);
+  border-color: var(--text-accent);
   transform: translateY(-1px);
 }
 
@@ -193,7 +193,7 @@
   display: inline-block;
   padding: 2px 10px;
   border-radius: var(--radius-full);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -201,7 +201,7 @@
 }
 .help-audience-admin {
   background: rgba(110, 86, 207, 0.12);
-  color: var(--primary-light);
+  color: var(--text-accent);
   border: 1px solid rgba(110, 86, 207, 0.3);
 }
 .help-audience-owner {
@@ -234,7 +234,7 @@
   border-radius: 4px;
   font-size: 0.82rem;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  color: var(--primary-light);
+  color: var(--text-accent);
 }
 .help-md pre {
   background: var(--bg-elevated);
@@ -281,7 +281,7 @@
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  color: var(--primary-light);
+  color: var(--text-accent);
   font-family: inherit;
   font-size: 0.78rem;
   font-weight: 500;
@@ -290,7 +290,7 @@
 }
 .help-jump-btn:hover {
   background: var(--bg-hover);
-  border-color: var(--primary);
+  border-color: var(--text-accent);
 }
 
 .help-foot {

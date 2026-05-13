@@ -1439,6 +1439,45 @@ app.delete('/api/workflows/:id', async (req, res) => {
   }
 });
 
+// Clone every workflow from one teamspace into another. The copies belong to
+// the target teamspace exclusively — editing one never affects the source.
+// Used to seed a brand-new teamspace with a known-good rule set or to share
+// rules from a "template" teamspace like Product Design.
+app.post('/api/workflows/copy', async (req, res) => {
+  try {
+    const { sourceTeamspaceId, targetTeamspaceId, workflowIds } = req.body;
+    if (!sourceTeamspaceId || !targetTeamspaceId) {
+      return res.status(400).json({ error: 'sourceTeamspaceId and targetTeamspaceId are required' });
+    }
+    if (String(sourceTeamspaceId) === String(targetTeamspaceId)) {
+      return res.status(400).json({ error: 'Source and target must be different teamspaces' });
+    }
+    const filter = { teamspaceId: sourceTeamspaceId };
+    if (Array.isArray(workflowIds) && workflowIds.length > 0) filter._id = { $in: workflowIds };
+    const sourceWorkflows = await Workflow.find(filter);
+    if (sourceWorkflows.length === 0) return res.json({ copied: 0, workflows: [] });
+
+    const copies = sourceWorkflows.map(w => ({
+      name: w.name,
+      description: w.description,
+      icon: w.icon,
+      color: w.color,
+      enabled: w.enabled,
+      trigger: w.trigger,
+      conditions: w.conditions,
+      actions: w.actions,
+      executionCount: 0,
+      lastExecuted: null,
+      createdBy: req.user?.name || w.createdBy,
+      teamspaceId: targetTeamspaceId,
+    }));
+    const inserted = await Workflow.insertMany(copies);
+    res.status(201).json({ copied: inserted.length, workflows: inserted });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/workflows/:id/toggle', async (req, res) => {
   try {
     const wf = await Workflow.findById(req.params.id);

@@ -142,6 +142,8 @@ export const toggleWorkflow = (id) => API.post(`/workflows/${id}/toggle`);
 export const getWorkflowLogs = (id) => API.get(`/workflows/${id}/logs`);
 export const getAllWorkflowLogs = () => API.get('/workflow-logs');
 export const runWorkflow = (id, taskId) => API.post(`/workflows/${id}/run`, { taskId });
+export const copyWorkflows = (sourceTeamspaceId, targetTeamspaceId, workflowIds) =>
+  API.post('/workflows/copy', { sourceTeamspaceId, targetTeamspaceId, workflowIds });
 
 export default API;
 
@@ -169,6 +171,7 @@ export const updatePlan        = (id, data)=> API.put(`/time/plans/${id}`, data)
 export const deletePlan        = (id)      => API.delete(`/time/plans/${id}`);
 export const submitPlan        = (id)      => API.post(`/time/plans/${id}/submit`);
 export const approvePlan       = (id)      => API.post(`/time/plans/${id}/approve`);
+export const financeCountersignPlan = (id) => API.post(`/time/plans/${id}/finance-countersign`);
 export const rejectPlan        = (id, reason) => API.post(`/time/plans/${id}/reject`, { reason });
 export const reopenPlan        = (id)      => API.post(`/time/plans/${id}/reopen`);
 export const getPlanAudit      = (id)      => API.get(`/time/plans/${id}/audit`);

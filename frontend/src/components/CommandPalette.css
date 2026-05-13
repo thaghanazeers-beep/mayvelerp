@@ -43,7 +43,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 2px 8px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   font-family: ui-monospace, monospace;
 }
@@ -60,7 +60,7 @@
   font-size: 0.85rem;
 }
 .cmdk-group {
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;

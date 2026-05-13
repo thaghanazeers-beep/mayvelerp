@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import OverviewDashboard from './OverviewDashboard';
 import TimeDashboardPage from './TimeDashboardPage';
+import { PageIntro } from '../components/PageIntro';
 import './DashboardPage.css';
 
 const TABS = [
@@ -19,6 +20,23 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 12, maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+      <PageIntro
+        compact
+        icon="📊"
+        title="Dashboard"
+        actor="Everyone"
+        purpose="Your home screen across the whole organisation. Overview shows task and team activity; Finance & Time shows planned vs. actual budget across every project."
+        storageKey="dashboard"
+        youCanDo={[
+          'Switch tabs to flip between operational view (tasks, sprints) and financial view (plans, P&L)',
+          'Click any KPI card to drill into the underlying data',
+          'Use this as a daily standup snapshot — what shipped, what\'s blocked, what\'s overdue',
+        ]}
+        whatHappensNext={[
+          'Numbers update live as the team logs work — no manual refresh needed',
+          'Click a task or sprint card → opens the detail page for that item',
+        ]}
+      />
       <div className="dash-tabs" role="tablist">
         {TABS.map(t => (
           <button

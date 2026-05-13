@@ -68,7 +68,7 @@
 /* Flow chips */
 .wf-card-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .wf-flow-chip { padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
-.wf-flow-chip.trigger { background: rgba(108,92,231,0.12); color: var(--primary-light); }
+.wf-flow-chip.trigger { background: rgba(108,92,231,0.12); color: var(--text-accent); }
 .wf-flow-chip.condition { background: rgba(253,203,110,0.12); color: var(--accent-orange); }
 .wf-flow-chip.action { background: rgba(0,206,201,0.12); color: var(--accent-green); }
 .wf-flow-arrow { color: var(--text-muted); font-size: 0.75rem; }
@@ -82,7 +82,7 @@
 
 .wf-steps { display: flex; border-bottom: 1px solid var(--border); padding: 0 16px; }
 .wf-step { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 8px; font-size: 0.8rem; font-weight: 500; color: var(--text-muted); border: none; background: transparent; cursor: pointer; border-bottom: 2px solid transparent; transition: all var(--transition-fast); font-family: inherit; }
-.wf-step.active { color: var(--primary-light); border-bottom-color: var(--primary); }
+.wf-step.active { color: var(--text-accent); border-bottom-color: var(--text-accent); }
 .wf-step.done { color: var(--accent-green); }
 .wf-step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--bg-hover); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
 .wf-step.active .wf-step-num { background: var(--primary); color: white; }
@@ -96,7 +96,7 @@
 .wf-trigger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .wf-trigger-option { display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; text-align: left; font-family: inherit; color: var(--text); transition: all var(--transition-fast); }
 .wf-trigger-option:hover { border-color: var(--border-strong); background: var(--bg-hover); }
-.wf-trigger-option.selected { border-color: var(--primary); background: rgba(108,92,231,0.06); }
+.wf-trigger-option.selected { border-color: var(--text-accent); background: rgba(108,92,231,0.06); }
 .wf-trigger-icon { font-size: 1.2rem; margin-top: 2px; }
 .wf-trigger-option strong { font-size: 0.85rem; display: block; }
 .wf-trigger-option p { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
@@ -106,7 +106,7 @@
 
 /* Config inputs */
 .wf-cfg-input { padding: 7px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: inherit; font-size: 0.8rem; outline: none; flex: 1; min-width: 80px; }
-.wf-cfg-input:focus { border-color: var(--primary); }
+.wf-cfg-input:focus { border-color: var(--text-accent); }
 .wf-cfg-row { display: flex; align-items: center; gap: 8px; }
 .wf-cfg-row label { font-size: 0.75rem; color: var(--text-secondary); min-width: 40px; }
 

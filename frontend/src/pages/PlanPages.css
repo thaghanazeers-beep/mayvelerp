@@ -31,7 +31,7 @@
 .plan-badge {
   display: inline-flex; align-items: center;
   padding: 2px 9px;
-  font-size: 0.68rem; font-weight: 600;
+  font-size: 0.75rem; font-weight: 600;
   border-radius: var(--radius-full);
   border: 1px solid transparent;
   text-transform: uppercase;
@@ -65,7 +65,7 @@
   background: var(--bg-elevated);
   text-align: left;
   padding: 10px 14px;
-  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--text-muted); font-weight: 600;
   border-bottom: 1px solid var(--border);
 }
@@ -96,7 +96,7 @@
   background: var(--bg-elevated);
   padding: 8px 10px;
   text-align: left;
-  font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--text-muted); font-weight: 600;
   white-space: nowrap;
   border-bottom: 1px solid var(--border);
@@ -123,7 +123,7 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 .plan-grid input:hover, .plan-grid select:hover { background: var(--bg-hover); }
-.plan-grid input:focus, .plan-grid select:focus { background: var(--bg-input); border-color: var(--primary); }
+.plan-grid input:focus, .plan-grid select:focus { background: var(--bg-input); border-color: var(--text-accent); }
 .plan-grid input:disabled, .plan-grid select:disabled { opacity: 0.7; cursor: not-allowed; }
 .plan-grid input[type="number"] { text-align: right; }
 .plan-grid select option { background: var(--bg-elevated); }
@@ -140,7 +140,7 @@
   font-family: inherit; font-size: 0.78rem;
 }
 .plan-add-row:hover:not(:disabled) {
-  background: var(--bg-hover); color: var(--text); border-color: var(--primary);
+  background: var(--bg-hover); color: var(--text); border-color: var(--text-accent);
 }
 
 /* ── Totals card ── */
@@ -156,7 +156,7 @@
   gap: 6px 24px;
   font-size: 0.85rem;
 }
-.plan-totals-grid .plan-th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; text-align: right; }
+.plan-totals-grid .plan-th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; text-align: right; }
 .plan-totals-grid .plan-tl { color: var(--text-muted); }
 .plan-totals-grid .num { text-align: right; font-variant-numeric: tabular-nums; }
 .plan-totals-grid .strong { color: var(--text); font-weight: 600; }
@@ -180,7 +180,7 @@
   transition: all var(--transition-fast);
   display: flex; flex-direction: column; gap: 12px;
 }
-.plan-approval-card:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.plan-approval-card:hover { border-color: var(--text-accent); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 .plan-approval-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .plan-approval-title { font-size: 0.95rem; font-weight: 600; }
 .plan-approval-meta { text-align: right; font-size: 0.78rem; }

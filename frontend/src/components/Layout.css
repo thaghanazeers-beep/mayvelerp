@@ -75,7 +75,7 @@
   margin-bottom: 6px;
 }
 .sidebar-section-label {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   color: var(--text-muted);
   font-weight: 700;
@@ -123,10 +123,10 @@
 
 .sidebar-link.active {
   background: var(--bg-selected);
-  color: var(--primary);
+  color: var(--text-accent);
   font-weight: 600;
 }
-.sidebar-link.active svg { color: var(--primary); opacity: 1; }
+.sidebar-link.active svg { color: var(--text-accent); opacity: 1; }
 /* Material-style left accent bar on active rows */
 .sidebar-link.active::before {
   content: ''; position: absolute; left: -10px; top: 6px; bottom: 6px;
@@ -188,7 +188,7 @@
   letter-spacing: -0.005em;
 }
 .ts-tree-name:hover { color: var(--text); }
-.ts-active .ts-tree-name { color: var(--primary); }
+.ts-active .ts-tree-name { color: var(--text-accent); }
 
 .ts-tree-icon { font-size: 0.875rem; flex-shrink: 0; }
 .ts-tree-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -264,7 +264,7 @@
 }
 
 .logout-btn:hover { background: rgba(248,81,73,0.08) !important; color: var(--accent-red) !important; }
-.theme-toggle:hover { background: var(--bg-selected) !important; color: var(--primary-light) !important; }
+.theme-toggle:hover { background: var(--bg-selected) !important; color: var(--text-accent) !important; }
 
 /* ════════════════ HEADER ════════════════ */
 .header {
@@ -347,7 +347,7 @@
   cursor: pointer;
 }
 .type-option:hover { border-color: var(--border-strong); background: var(--bg-hover); }
-.type-option.active { border-color: var(--primary); background: var(--bg-selected); }
+.type-option.active { border-color: var(--text-accent); background: var(--bg-selected); }
 
 /* ════════════════ SUPER ADMIN TOGGLE PILL ════════════════ */
 .superadmin-toggle {
@@ -360,7 +360,7 @@
 }
 .superadmin-toggle input[type="checkbox"] {
   width: 14px; height: 14px;
-  accent-color: var(--primary);
+  accent-color: var(--text-accent);
   margin: 0;
 }
 .superadmin-toggle.is-super {
@@ -379,5 +379,5 @@
 }
 .superadmin-toggle.is-normal:hover {
   background: var(--bg-hover);
-  border-color: var(--primary);
+  border-color: var(--text-accent);
 }

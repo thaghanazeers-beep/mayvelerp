@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { streamChat } from '../api';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { PageIntro } from '../components/PageIntro';
 import './AiChatPage.css';
 
 const STORAGE_KEY = 'ai_chat_conversations_v1';
@@ -307,6 +308,26 @@ export default function AiChatPage() {
             </p>
           </div>
         </header>
+        <div style={{ padding: '0 24px' }}>
+          <PageIntro
+            compact
+            icon="🤖"
+            title="AI Assistant"
+            actor="Everyone"
+            purpose="Ask natural-language questions about your projects, tasks, and finances — the assistant reads the data you have access to and answers in plain English."
+            storageKey="ai-chat"
+            youCanDo={[
+              'Ask things like "who is overloaded this week" or "what\'s the margin on project X"',
+              'Start a new chat for each topic — history is saved in the sidebar',
+              'The assistant only sees data you have access to; nothing leaks across teamspaces',
+            ]}
+            whatHappensNext={[
+              'Send a question → the assistant runs queries and replies in a few seconds',
+              'Answers cite the records they\'re based on — click to open the source task or plan',
+              'For complex requests it may follow up with clarifying questions',
+            ]}
+          />
+        </div>
 
         <div className="aichat-thread" ref={scrollRef}>
           {messages.length === 0 ? (

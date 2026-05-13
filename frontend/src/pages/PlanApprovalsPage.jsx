@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { getPlans, getProjects, formatINR } from '../api';
+import { PageIntro, NextStepHint } from '../components/PageIntro';
 import './PlanPages.css';
 
 export default function PlanApprovalsPage() {
@@ -36,6 +37,24 @@ export default function PlanApprovalsPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        icon="✅"
+        title="Plan Approvals"
+        actor="Project Owners"
+        purpose="Plans submitted by PMs for projects you own are listed here. Open one to review hours, cost, revenue and profit before you approve or reject."
+        storageKey="plan-approvals"
+        youCanDo={[
+          'Click a plan to open the full breakdown (allocations, rates, margin)',
+          'Approve the plan to release the budget for execution',
+          'Reject with a comment to send it back to the PM for revision',
+        ]}
+        whatHappensNext={[
+          'Approve → plan status becomes Approved, PM is notified, time logging is enabled against this plan',
+          'Reject → plan goes back to Draft, PM gets your comment in their notifications',
+          'Project P&L starts comparing planned vs. actual the moment a plan is approved',
+        ]}
+      />
+
       <div className="plan-toolbar">
         <h2 style={{ margin: 0 }}>Plan Approvals</h2>
         <span className="muted">{plans.length} pending</span>
@@ -45,7 +64,9 @@ export default function PlanApprovalsPage() {
         <div className="plan-empty">
           <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
           <p>No plans waiting for your approval.</p>
-          <p className="muted" style={{ fontSize: '0.78rem' }}>Only plans submitted for projects you own appear here.</p>
+          <p className="muted" style={{ fontSize: '0.78rem' }}>
+            Only plans submitted for projects you own appear here. When a PM clicks <strong>Submit for approval</strong> on a budget plan, it will show up in this list.
+          </p>
         </div>
       ) : (
         <div className="plan-approval-list">
@@ -70,7 +91,10 @@ export default function PlanApprovalsPage() {
                   <div><span className="muted">Profit</span> <strong className={p.plannedProfitCents < 0 ? 'plan-loss' : 'plan-profit'}>{formatINR(p.plannedProfitCents)}</strong></div>
                   <div><span className="muted">Margin</span> <strong>{Math.round((p.plannedMarginPct||0)*100)}%</strong></div>
                 </div>
-                <div className="muted" style={{ fontSize: '0.75rem' }}>Click to review →</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <NextStepHint>Click to review, then <strong>Approve</strong> or <strong>Reject</strong> from the plan editor</NextStepHint>
+                  <span className="muted" style={{ fontSize: '0.75rem' }}>Open plan →</span>
+                </div>
               </div>
             );
           })}

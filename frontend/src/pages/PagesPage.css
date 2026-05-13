@@ -70,7 +70,7 @@
 .page-list-item:hover { background: var(--bg-hover); color: var(--text); }
 .page-list-item.active {
   background: rgba(108, 92, 231, 0.12);
-  color: var(--primary-light);
+  color: var(--text-accent);
   font-weight: 600;
 }
 
@@ -189,7 +189,7 @@
 }
 .col-dot { width: 8px; height: 8px; border-radius: 50%; }
 .col-title { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); flex: 1; }
-.col-count { font-size: 0.72rem; color: var(--text-muted); background: var(--bg-hover); padding: 2px 6px; border-radius: 10px; }
+.col-count { font-size: 0.75rem; color: var(--text-muted); background: var(--bg-hover); padding: 2px 6px; border-radius: 10px; }
 
 .page-board-cards { display: flex; flex-direction: column; gap: 8px; }
 .page-board-empty { padding: 12px; text-align: center; font-size: 0.75rem; color: var(--text-muted); border: 1px dashed var(--border); border-radius: var(--radius-sm); }
@@ -225,7 +225,7 @@
   border: 1px solid;
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   outline: none;
   cursor: pointer;
 }

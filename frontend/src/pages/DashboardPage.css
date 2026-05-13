@@ -34,7 +34,7 @@
 }
 .dash-tab.active {
   color: var(--text);
-  border-bottom-color: var(--primary);
+  border-bottom-color: var(--text-accent);
   background: transparent;
   box-shadow: none;
 }
@@ -44,13 +44,13 @@
   letter-spacing: -0.005em;
 }
 .dash-tab-hint {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
 }
-.dash-tab.active .dash-tab-label { color: var(--primary-light); }
+.dash-tab.active .dash-tab-label { color: var(--text-accent); }
 .dash-tab.active .dash-tab-hint  { color: var(--text-secondary); }
 
 .dash-header { margin-bottom: 20px; }
@@ -82,7 +82,7 @@
   flex-shrink: 0;
 }
 .kpi-info h3 { font-size: 1.5rem; font-weight: 800; margin: 0 0 2px; color: var(--text); letter-spacing: -0.03em; }
-.kpi-info span { font-size: 0.6875rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.kpi-info span { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* ════════════════ CHARTS ════════════════ */
 .charts-grid {
@@ -145,7 +145,7 @@
 .dash-table th {
   text-align: left; padding: 10px 14px;
   border-bottom: 1px solid var(--border-default);
-  color: var(--text-muted); font-weight: 600; font-size: 0.6875rem;
+  color: var(--text-muted); font-weight: 600; font-size: 0.75rem;
   text-transform: uppercase; letter-spacing: 0.04em;
   background: var(--bg-elevated);
 }
@@ -195,7 +195,7 @@
 .perf-metric { display: flex; flex-direction: column; gap: 4px; }
 .perf-metric-label {
   display: flex; justify-content: space-between;
-  font-size: 0.6875rem; font-weight: 600; color: var(--text-secondary);
+  font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
 }
 .perf-progress { height: 4px; background: var(--bg-input); border-radius: 100px; overflow: hidden; }
 .perf-progress-fill { height: 100%; border-radius: 100px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }

@@ -58,7 +58,7 @@
 }
 .team-card:hover .team-card-actions { opacity: 1; }
 
-.team-edit { color: var(--primary-light); }
+.team-edit { color: var(--text-accent); }
 .team-edit:hover { background: var(--bg-selected) !important; }
 .team-remove { color: var(--accent-red); }
 .team-remove:hover { background: rgba(248,81,73,0.08) !important; }
@@ -115,7 +115,7 @@
   font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8125rem;
   color: var(--text); user-select: all; cursor: copy;
 }
-.invite-hint { font-size: 0.6875rem !important; color: var(--text-muted) !important; margin-top: 4px; }
+.invite-hint { font-size: 0.75rem !important; color: var(--text-muted) !important; margin-top: 4px; }
 
 @media (max-width: 600px) {
   .team-grid { grid-template-columns: 1fr; }

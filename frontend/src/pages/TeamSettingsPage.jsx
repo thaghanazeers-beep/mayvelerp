@@ -3,6 +3,7 @@ import { getTeam, inviteUser, removeUser } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { PageIntro } from '../components/PageIntro';
 
 const ROLES = ['Admin', 'Manager', 'Lead', 'Developer', 'Designer', 'Member', 'Viewer'];
 
@@ -54,7 +55,24 @@ export default function TeamSettingsPage() {
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      {/* Header */}
+      <PageIntro
+        compact
+        icon="⚙️"
+        title="Team Settings"
+        actor="Teamspace Owner / Admins"
+        purpose="Manage team membership, invitations, and per-member roles within this teamspace."
+        storageKey="team-settings"
+        youCanDo={[
+          'Invite a new person by email',
+          'Change a member\'s role within this teamspace (without affecting other teamspaces)',
+          'Remove a member — their work stays, but they lose access to this teamspace',
+        ]}
+        whatHappensNext={[
+          'Invite → email sent with sign-up link; until they accept they show as Pending',
+          'Role change → takes effect on their next page load; new actions enforce the new role immediately',
+          'Remove → they\'re unallocated from every project in this teamspace',
+        ]}
+      />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: 0 }}>Manage team roles, permissions, and invitations</p>
@@ -111,7 +129,7 @@ export default function TeamSettingsPage() {
                     </td>
                     <td>
                       {orgRole ? (
-                        <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--primary-light)', padding: '2px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600 }}>{orgRole}</span>
+                        <span style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--text-accent)', padding: '2px 10px', borderRadius: 6, fontSize: '0.78rem', fontWeight: 600 }}>{orgRole}</span>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>
                       )}

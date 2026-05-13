@@ -211,7 +211,7 @@ export default function OverviewDashboard() {
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ 
           background: 'linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(0, 184, 148, 0.12))', 
-          color: 'var(--primary, #6c5ce7)', 
+          color: 'var(--text-accent)', 
           padding: '4px 14px', 
           borderRadius: 20, 
           fontSize: '0.82rem', 
@@ -293,7 +293,7 @@ export default function OverviewDashboard() {
                      title={perf.extraHoursPenalty > 0 ? `Base ${perf.baseScore} − ${perf.extraHoursPenalty} non-billable penalty` : `Score ${perf.score}`}>
                   {perf.score}
                   {perf.extraHoursPenalty > 0 && (
-                    <div style={{ fontSize: '0.55rem', color: '#ff9800', fontWeight: 500, marginTop: 2 }}>
+                    <div style={{ fontSize: '0.75rem', color: '#ff9800', fontWeight: 500, marginTop: 2 }}>
                       −{perf.extraHoursPenalty} extra hrs
                     </div>
                   )}

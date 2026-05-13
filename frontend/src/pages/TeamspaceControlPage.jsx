@@ -3,6 +3,7 @@ import { getTeamspaces, createTeamspace, updateTeamspace, deleteTeamspace } from
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
+import { PageIntro } from '../components/PageIntro';
 
 const ICONS = ['🏢', '🚀', '🎨', '💻', '📊', '🔬', '📱', '🎯', '⚡', '🌟', '🎮', '📈', '🛠️', '🏗️', '🧪', '📝'];
 
@@ -74,7 +75,24 @@ export default function TeamspaceControlPage() {
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: 40 }}>
-      {/* Header */}
+      <PageIntro
+        compact
+        icon="🛠️"
+        title="Teamspace settings"
+        actor="Teamspace Owner"
+        purpose="The control panel for this specific teamspace — its name, icon, default rate, and other workspace-wide settings."
+        storageKey="teamspace-control"
+        youCanDo={[
+          'Rename the teamspace or change its icon (visible to every member)',
+          'Set a default bill rate that new projects inherit unless overridden',
+          'Delete the teamspace (you must transfer ownership first if it has members)',
+        ]}
+        whatHappensNext={[
+          'Rename → every existing project and notification updates to use the new name',
+          'Changing default rate → only affects future projects; existing ones keep their own rate',
+          'Delete → all projects, tasks, plans and time entries inside go with it — no undo',
+        ]}
+      />
       <div style={{ marginBottom: 28 }}>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: 0 }}>Configure settings for the current teamspace</p>
       </div>

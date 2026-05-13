@@ -121,7 +121,7 @@ export default function AuthPage() {
         {previewUrl && (
           <div className="auth-info" style={{ wordBreak: 'break-all' }}>
             Dev preview — view the email here:{' '}
-            <a href={previewUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-light)' }}>
+            <a href={previewUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-accent)' }}>
               {previewUrl}
             </a>
           </div>
@@ -129,7 +129,7 @@ export default function AuthPage() {
         {devResetUrl && !previewUrl && (
           <div className="auth-info" style={{ wordBreak: 'break-all' }}>
             Dev mode — open this link to continue:{' '}
-            <a href={devResetUrl} style={{ color: 'var(--primary-light)' }}>{devResetUrl}</a>
+            <a href={devResetUrl} style={{ color: 'var(--text-accent)' }}>{devResetUrl}</a>
           </div>
         )}
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getPages, createPage, updatePage, deletePage, getTasks, createTask, updateTask, deleteTask } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { PageIntro } from '../components/PageIntro';
 import './PagesPage.css';
 
 const STATUSES = ['Not Yet Started', 'In Progress', 'In Review', 'Completed', 'Rejected'];
@@ -48,7 +49,26 @@ export default function PagesPage() {
   }
 
   return (
-    <div className="pages-container">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <PageIntro
+        compact
+        icon="📄"
+        title="Pages"
+        actor="Everyone in this teamspace"
+        purpose="A Notion-style workspace for long-form notes, specs, meeting minutes, and docs. Pages live inside the teamspace and can be shared with all members."
+        storageKey="pages"
+        youCanDo={[
+          'Create a new page from the + button in the sidebar',
+          'Use slash commands (/) to add headings, lists, checkboxes, code blocks, embeds',
+          'Convert any line into a task with a single keystroke',
+        ]}
+        whatHappensNext={[
+          'Pages auto-save as you type — no submit button',
+          'Tasks created inside a page show up on the Tasks board automatically',
+          'Anyone in the teamspace can read every page; only the author can delete',
+        ]}
+      />
+      <div className="pages-container" style={{ flex: 1, minHeight: 0 }}>
       {/* ── Sidebar (List of Pages) ── */}
       <div className="pages-sidebar">
         <div className="pages-sidebar-header">
@@ -253,6 +273,7 @@ function PageEditor({ page, onChange, onDelete }) {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { getProjectPnL, formatINR, projectPnlPdfUrl } from '../api';
+import { PageIntro } from '../components/PageIntro';
 import './PlanPages.css';
 
 const isoMonth = (d = new Date()) => d.toISOString().slice(0, 7);
@@ -43,6 +44,25 @@ export default function ProjectPnLPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        compact
+        icon="📈"
+        title="Project P&L"
+        actor="PMs & Finance"
+        purpose="Side-by-side comparison of the approved plan vs. what actually happened — planned hours vs. logged, planned cost vs. spent, planned margin vs. real."
+        storageKey="project-pnl"
+        youCanDo={[
+          'Change the month to see P&L for any past or future period',
+          'Export as a PDF (top-right) to share with finance or clients',
+          'Spot variance early — if actuals trend above plan, you can intervene',
+        ]}
+        whatHappensNext={[
+          'Numbers update live as people log time and weeks get approved',
+          'Negative margin is highlighted in red — flag the project owner immediately',
+          'This view is the source of truth for client invoicing on T&M projects',
+        ]}
+      />
+
       <div className="plan-toolbar">
         <button className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard?tab=finance')}>← Dashboard</button>
         <div style={{ flex: 1 }}>
@@ -70,6 +90,52 @@ export default function ProjectPnLPage() {
       {internal && (
         <div className="plan-banner plan-banner-pending">
           Internal project — no revenue. Loss equals total actual cost.
+        </div>
+      )}
+
+      {/* Internal cost-budget block — independent of contract value. Surfaced
+          when finance has set a monthly or overall budget on the project. */}
+      {projectFinancials && (projectFinancials.monthlyBudgetCents > 0 || projectFinancials.overallBudgetCents > 0) && (
+        <div className="plan-totals" style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 style={{ margin: 0, fontSize: '0.95rem' }}>🏦 Internal cost budget</h3>
+            {(projectFinancials.monthlyOver || projectFinancials.overallOver) && (
+              <span className="plan-badge plan-badge-rejected">⚠ Budget overrun</span>
+            )}
+          </div>
+          <div className="plan-totals-grid" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr' }}>
+            <div></div>
+            <div className="plan-th">Budget</div>
+            <div className="plan-th">Committed (plans)</div>
+            <div className="plan-th">Spent (actuals)</div>
+
+            {projectFinancials.monthlyBudgetCents > 0 && (
+              <>
+                <div className="plan-tl">Monthly ({projectFinancials.focusMonth})</div>
+                <div className="num strong">{formatINR(projectFinancials.monthlyBudgetCents)}</div>
+                <div className={`num strong ${projectFinancials.monthlyOver ? 'plan-loss' : 'plan-profit'}`}>{formatINR(projectFinancials.monthlyCommittedCostCents)}</div>
+                <div className={`num strong ${projectFinancials.monthlyActualCostCents > projectFinancials.monthlyBudgetCents ? 'plan-loss' : ''}`}>{formatINR(projectFinancials.monthlyActualCostCents)}</div>
+              </>
+            )}
+            {projectFinancials.overallBudgetCents > 0 && (
+              <>
+                <div className="plan-tl">Overall (project life)</div>
+                <div className="num strong">{formatINR(projectFinancials.overallBudgetCents)}</div>
+                <div className={`num strong ${projectFinancials.overallOver ? 'plan-loss' : 'plan-profit'}`}>{formatINR(projectFinancials.committedCostCents)}</div>
+                <div className={`num strong ${projectFinancials.actualCostCents > projectFinancials.overallBudgetCents ? 'plan-loss' : ''}`}>{formatINR(projectFinancials.actualCostCents)}</div>
+              </>
+            )}
+          </div>
+          {projectFinancials.monthlyOver && (
+            <div className="muted" style={{ fontSize: '0.78rem', marginTop: 8, color: 'var(--accent-red)' }}>
+              ⚠ {projectFinancials.focusMonth} committed cost {formatINR(projectFinancials.monthlyCommittedCostCents)} exceeds monthly budget {formatINR(projectFinancials.monthlyBudgetCents)} by {formatINR(projectFinancials.monthlyCommittedCostCents - projectFinancials.monthlyBudgetCents)}.
+            </div>
+          )}
+          {projectFinancials.overallOver && (
+            <div className="muted" style={{ fontSize: '0.78rem', marginTop: 4, color: 'var(--accent-red)' }}>
+              ⚠ Lifetime committed cost {formatINR(projectFinancials.committedCostCents)} exceeds overall budget {formatINR(projectFinancials.overallBudgetCents)} by {formatINR(projectFinancials.committedCostCents - projectFinancials.overallBudgetCents)}.
+            </div>
+          )}
         </div>
       )}
 

@@ -1,0 +1,181 @@
+/* ══════════════════════════════════════════════════════
+   PAGE INTRO + NEXT-STEP HINT
+   Sitewide explainer pattern — purpose, who-uses-it,
+   and what-happens-next captions on actions.
+   ══════════════════════════════════════════════════════ */
+
+.page-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  margin: 0 0 18px;
+  background: linear-gradient(135deg, rgba(184, 255, 3, 0.04), rgba(0, 128, 255, 0.04));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.page-intro-icon {
+  font-size: 22px;
+  line-height: 1;
+  margin-top: 2px;
+  filter: grayscale(0);
+}
+
+.page-intro-body { flex: 1; min-width: 0; }
+
+.page-intro-title {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin: 0 0 2px;
+}
+
+.page-intro-purpose {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.page-intro-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 18px;
+}
+
+.page-intro-block-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.page-intro-block ul {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.page-intro-block li {
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.4;
+  padding-left: 14px;
+  position: relative;
+}
+.page-intro-block li::before {
+  content: '›';
+  position: absolute; left: 2px; top: -1px;
+  color: var(--text-accent);
+  font-weight: 700;
+}
+
+.page-intro-toggle {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+  height: 24px;
+}
+.page-intro-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.page-intro-actor-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-accent);
+  background: rgba(184, 255, 3, 0.08);
+  border: 1px solid rgba(184, 255, 3, 0.18);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+/* ── NEXT STEP HINT — caption under buttons / near actions ── */
+.next-step-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  font-style: italic;
+}
+.next-step-hint::before {
+  content: '↳';
+  color: var(--text-accent);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.next-step-hint.block {
+  display: flex;
+  margin-top: 6px;
+}
+.next-step-hint strong {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* ── Light theme overrides ──
+   The dark-mode gradient (rgba 0.04 over near-black) almost vanishes on white.
+   Light theme needs a denser tint, darker text, and a stronger actor pill so the
+   banner reads at a glance.
+*/
+[data-theme="light"] .page-intro {
+  background: linear-gradient(135deg, rgba(184, 255, 3, 0.20), rgba(0, 128, 255, 0.08));
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  border-left: 3px solid var(--primary-dark);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .page-intro-title { color: #0a0a0a; }
+[data-theme="light"] .page-intro-purpose { color: #374151; }
+[data-theme="light"] .page-intro-block-label { color: #4b5563; }
+[data-theme="light"] .page-intro-block li { color: #111827; }
+[data-theme="light"] .page-intro-block li::before { color: var(--primary-dark); }
+[data-theme="light"] .page-intro-actor-tag {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: var(--text-accent);
+}
+[data-theme="light"] .page-intro-toggle {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.16);
+  color: #374151;
+}
+[data-theme="light"] .page-intro-toggle:hover {
+  background: #f3f4f6;
+  color: #0a0a0a;
+}
+[data-theme="light"] .next-step-hint { color: #4b5563; }
+[data-theme="light"] .next-step-hint::before { color: var(--primary-dark); }
+[data-theme="light"] .next-step-hint strong { color: #0a0a0a; }
+
+/* compact variant for tight toolbars */
+.page-intro.compact {
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.page-intro.compact .page-intro-title { font-size: 0.95rem; }
+.page-intro.compact .page-intro-purpose { font-size: 0.76rem; }

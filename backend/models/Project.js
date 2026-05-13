@@ -31,6 +31,15 @@ const projectSchema = new mongoose.Schema({
   billingType:           { type: String, enum: ['tm', 'fixed'], default: 'tm' },
   contractValueCents:    { type: Number, default: 0 },
 
+  // ── Cost-side budget caps (independent of contractValueCents which is the
+  //    *revenue* ceiling on the client side). These are the company's own
+  //    internal limits on how much it's willing to spend on the project.
+  //    monthlyBudgetCents — soft cap finance applies to any one month's plans
+  //    overallBudgetCents — hard cap finance applies to the whole project life
+  //    0 on either means "no cap" (legacy / internal projects).
+  monthlyBudgetCents:    { type: Number, default: 0 },
+  overallBudgetCents:    { type: Number, default: 0 },
+
   // ── Project type — drives the budget/plan workflow ──
   //   tm          → single plan covers N months (typically 3-4); one approval covers all
   //   sprint      → one plan per sprint, period taken from Sprint.start/end

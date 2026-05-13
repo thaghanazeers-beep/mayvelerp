@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getOrganizationMembers, formatINR, signedFileUrl, getRateBuckets, updateUser } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { PageIntro } from '../components/PageIntro';
 import './OrgMembersPage.css';
 
 const isoMonth = (d = new Date()) => d.toISOString().slice(0, 7);
@@ -107,6 +108,23 @@ export default function OrgMembersPage() {
 
   return (
     <div className="orgm-page">
+      <PageIntro
+        icon="🧑‍💼"
+        title="Organisation Members"
+        actor="HR & Super Admin"
+        purpose="The complete employee directory — including people who have a login and people who only exist on the org chart (e.g. interns, contractors). Set each person\'s cost rate here."
+        storageKey="org-members"
+        youCanDo={[
+          'Search and filter every member across every teamspace',
+          'Set or change a member\'s cost rate / rate bucket — feeds every plan and P&L',
+          'Promote a chart-only person to a real login by assigning them an email and password',
+        ]}
+        whatHappensNext={[
+          'Changing a cost rate → only affects new plans; existing approved plans keep their snapshot',
+          'Adding a login → the person gets credentials and starts seeing the workspace',
+          'Cost data here is private — only HR and Super Admin can view, never visible to peers',
+        ]}
+      />
       <div className="orgm-toolbar">
         <div>
           <h1 className="orgm-title">Organization Members</h1>
@@ -207,7 +225,7 @@ export default function OrgMembersPage() {
                   <span className="orgm-meta-v">{m.managerName || <span className="muted">—</span>}</span>
                 </div>
                 <div className="orgm-meta-row">
-                  <span className="orgm-meta-k">Cost rate {isAdmin && m.kind === 'user' && <span style={{ fontSize: '0.65rem', color: 'var(--primary-light)' }}>(editable)</span>}</span>
+                  <span className="orgm-meta-k">Cost rate {isAdmin && m.kind === 'user' && <span style={{ fontSize: '0.75rem', color: 'var(--text-accent)' }}>(editable)</span>}</span>
                   <span className="orgm-meta-v orgm-cost">
                     {m.rateBucket
                       ? <>{formatINR(m.rateBucket.ratePerHourCents)} / hr <span className="muted">· {m.rateBucket.name}</span></>
@@ -227,7 +245,7 @@ export default function OrgMembersPage() {
                       marginTop: 4,
                     }}
                   >
-                    <span style={{ fontSize: '0.72rem', color: 'var(--primary-light)', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-accent)', fontWeight: 600 }}>
                       ✏️ Change cost rate
                     </span>
                     <select

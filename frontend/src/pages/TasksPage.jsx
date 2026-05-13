@@ -6,6 +6,7 @@ import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
 import { taskUrl, idFromTaskUrlSegment } from '../utils/slug';
 import TaskDetailPage from './TaskDetailPage';
+import { PageIntro } from '../components/PageIntro';
 import ViewTabs from '../components/ViewTabs';
 import './TasksPage.css';
 
@@ -525,6 +526,24 @@ export default function TasksPage() {
 
   return (
     <div className="tasks-page">
+      <PageIntro
+        icon="✅"
+        title="Tasks"
+        actor="Everyone in this teamspace"
+        purpose="Every task assigned to or created in this teamspace, across every project. Switch views (Board, List, Calendar, Gallery) to slice the same data differently."
+        storageKey="tasks-list"
+        youCanDo={[
+          'Filter by sprint using the pills below, or by status on the board',
+          'Drag a task between columns to change its status',
+          'Click a task to open the full detail page (description, files, comments, time log)',
+          'Save a custom filtered view so you can return to it instantly',
+        ]}
+        whatHappensNext={[
+          'Move to In Progress → assignee gets a notification, time logging unlocks',
+          'Move to In Review → teamspace owner is pinged to approve or reject',
+          'Approved → task locks and goes to Completed; rejected → goes back to assignee for rework',
+        ]}
+      />
       <ViewTabs
         views={views}
         activeViewId={activeViewId}
@@ -685,7 +704,7 @@ export default function TasksPage() {
             </button>
           ) : (
             <span className="muted" style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-              🔒 Need an allocation — see <a href={`/t/${activeTeamspaceId}/time/plans`} style={{ color: 'var(--primary-light)' }}>Project Plans</a>
+              🔒 Need an allocation — see <a href={`/t/${activeTeamspaceId}/time/plans`} style={{ color: 'var(--text-accent)' }}>Project Plans</a>
             </span>
           )}
         </div>
@@ -970,7 +989,7 @@ export default function TasksPage() {
                   })}
                 </select>
                 {newTaskProjectId && assigneeOptions.length === 0 && (
-                  <div className="muted" style={{ fontSize: '0.72rem', marginTop: 6 }}>
+                  <div className="muted" style={{ fontSize: '0.75rem', marginTop: 6 }}>
                     No one has a {newTaskBillable ? 'billable' : 'non-billable'} allocation in this project yet — go to Time → Plans first.
                   </div>
                 )}
@@ -994,7 +1013,7 @@ export default function TasksPage() {
                   onChange={(e) => setNewTaskHours(e.target.value)}
                   placeholder="e.g. 4" />
                 {Number(newTaskHours) > remainingForChoice && newTaskAssignee && (
-                  <div className="muted" style={{ fontSize: '0.72rem', marginTop: 6, color: 'var(--accent-orange)' }}>
+                  <div className="muted" style={{ fontSize: '0.75rem', marginTop: 6, color: 'var(--accent-orange)' }}>
                     ⚠️ Estimate exceeds remaining allocation — task can still be created but the assignee will hit the cap when logging time.
                   </div>
                 )}

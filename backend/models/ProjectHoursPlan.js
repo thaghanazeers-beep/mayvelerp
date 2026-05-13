@@ -21,7 +21,10 @@ const projectHoursPlanSchema = new mongoose.Schema({
     monthlyHours:  { type: Number,  default: 0 },
     nextRunOn:     { type: Date },
   },
-  status:                     { type: String, enum: ['draft','pending','approved','rejected'], default: 'draft', index: true },
+  // 'awaiting_finance' = owner has approved, but the plan exceeds the org-wide
+  // countersign threshold so a Super Admin must also approve before the budget
+  // is released. Allocations and time logging stay blocked in this state.
+  status:                     { type: String, enum: ['draft','pending','awaiting_finance','approved','rejected'], default: 'draft', index: true },
 
   // Hours
   totalPlannedHours:          { type: Number, default: 0 },
@@ -62,6 +65,25 @@ const projectHoursPlanSchema = new mongoose.Schema({
   rejectedBy:                 { type: String },
   rejectionReason:            { type: String },
   attachmentId:               { type: String },                     // optional original Excel upload (file name in /uploads)
+
+  // ── Scope % vs. project overall budget ────────────────────────────────
+  // scopePercentage  — PM's declared share of project scope this plan covers
+  //                    (0-100). e.g. "this plan delivers 30% of the project".
+  // The system computes expected cost = project.overallBudget × scopePercentage/100
+  // and flags variance between plan.totalCost and expected. Helps catch
+  // "you're using 50% of budget but only delivering 30% of scope" early.
+  scopePercentage:            { type: Number, default: 0, min: 0, max: 100 },
+
+  // Two-step "Finance counter-sign" — applied to plans whose cost or revenue
+  // exceeds FINANCE_COUNTERSIGN_THRESHOLD_CENTS at the moment the owner approves.
+  // Owner approval transitions status → 'awaiting_finance'; Super Admin then
+  // counter-signs to release the budget (status → 'approved').
+  requiresFinanceCountersign: { type: Boolean, default: false },
+  financeCountersignThresholdCents: { type: Number, default: 0 }, // snapshot at submit time
+  ownerApprovedAt:            { type: Date },
+  ownerApprovedBy:            { type: String },
+  financeCountersignedAt:     { type: Date },
+  financeCountersignedBy:     { type: String },
 
   createdBy:                  { type: String },
   updatedBy:                  { type: String },

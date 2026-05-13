@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getActivity } from '../api';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { PageIntro } from '../components/PageIntro';
 import './PlanPages.css';
 
 const SOURCE_ICON = {
@@ -63,6 +64,24 @@ export default function ActivityPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        icon="📈"
+        title="Activity Feed"
+        actor="Everyone"
+        purpose="A chronological stream of everything that happened in this workspace — tasks created, statuses changed, comments posted, plans approved. Like a newsfeed for work."
+        storageKey="activity-feed"
+        youCanDo={[
+          'Pick a time window (24h, 7d, 30d) to focus the feed',
+          'Click an event to jump to the underlying task, plan, or comment',
+          'Use this for a daily "what happened yesterday" catch-up',
+        ]}
+        whatHappensNext={[
+          'New events appear in real time — no manual refresh needed',
+          'Personal notifications still come via the bell — this is the team-wide view',
+          'If you only care about your own work → use the Notifications page instead',
+        ]}
+      />
+
       <div className="plan-toolbar" style={{ flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ margin: 0 }}>📈 Activity Feed</h2>
         <span className="muted">{filtered.length} events</span>
@@ -118,7 +137,7 @@ export default function ActivityPage() {
                           <strong>{e.actor || 'System'}</strong> · {e.title || e.kind}
                         </div>
                         {e.summary && <div className="muted" style={{ fontSize: '0.78rem', marginTop: 2 }}>{e.summary}</div>}
-                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
                           {SOURCE_LABEL[e.source]} · {e.kind} · {new Date(e.at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>

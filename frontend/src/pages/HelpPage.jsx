@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useAuth } from '../context/AuthContext';
+import { PageIntro } from '../components/PageIntro';
 import './HelpPage.css';
 
 // ─── Guide content (kept as plain markdown so it's easy to edit) ─────────────
@@ -693,6 +694,22 @@ export default function HelpPage() {
       {/* Content */}
       <main className="help-content">
         <div className="help-content-inner">
+          <PageIntro
+            compact
+            icon="📘"
+            title="Help & User Guide"
+            actor="Everyone"
+            purpose="The full manual for Mayvel Task. Browse the table of contents on the left, or search a topic — the right side scrolls through the matching guide section."
+            storageKey="help"
+            youCanDo={[
+              'Click a topic in the sidebar to jump to it',
+              'Search for a word — matching sections highlight instantly',
+            ]}
+            whatHappensNext={[
+              'Can\'t find what you need? Try the AI assistant — it answers natural-language questions about your data',
+              'For bugs or feature requests → email support@mayvel.ai',
+            ]}
+          />
           <header className="help-hero">
             <h1>Welcome to Mayvel Task</h1>
             <p>Everything you need to navigate the platform — from logging your first hour to approving a multi-lakh project plan.</p>

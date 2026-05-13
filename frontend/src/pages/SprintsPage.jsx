@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
 import ViewTabs from '../components/ViewTabs';
+import { PageIntro } from '../components/PageIntro';
 import './SprintsPage.css';
 
 const STATUSES = ['Not Yet Started', 'In Progress', 'In Review', 'Completed', 'Rejected'];
@@ -523,6 +524,23 @@ export default function SprintsPage() {
   // ── Sprint List View ───────────────────────────────────
   return (
     <div className="sprints-page">
+      <PageIntro
+        icon="🏃"
+        title="Sprints"
+        actor="PMs & Sprint leads"
+        purpose="Group tasks into time-boxed sprints. Each sprint has a start/end date, a goal, and a status — use this page to plan, kick off, and close them."
+        storageKey="sprints-list"
+        youCanDo={[
+          'Create a sprint and add tasks to it from the Tasks page',
+          'Start a sprint when you\'re ready — it becomes the active sprint',
+          'Close a sprint once all tasks are done or moved to the next one',
+        ]}
+        whatHappensNext={[
+          'Start sprint → it shows up as "Current" on the Tasks page and dashboards',
+          'Close sprint → unfinished tasks can be auto-moved to the next sprint',
+          'Sprint dates feed the burn-down and velocity charts on the dashboard',
+        ]}
+      />
       {/* Toolbar */}
       <div className="sprint-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

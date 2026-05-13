@@ -7,7 +7,7 @@ function renderBody(body) {
   const parts = body.split(/(@[\w.\-' ]+?(?=[\s.,!?;:]|$))/g);
   return parts.map((p, i) =>
     p.startsWith('@')
-      ? <strong key={i} style={{ color: 'var(--primary-light)' }}>{p}</strong>
+      ? <strong key={i} style={{ color: 'var(--text-accent)' }}>{p}</strong>
       : <span key={i}>{p}</span>
   );
 }

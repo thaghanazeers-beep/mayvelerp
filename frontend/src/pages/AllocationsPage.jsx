@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { getPlan, getPlanAllocations, updateAllocation, getTeam, getProjects, formatINR } from '../api';
+import { PageIntro } from '../components/PageIntro';
 import './PlanPages.css';
 
 const weekKey = (d) => new Date(d).toISOString().slice(0, 10);
@@ -86,6 +87,25 @@ export default function AllocationsPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        compact
+        icon="👥"
+        title="Allocations"
+        actor="PMs"
+        purpose="Decide who works on this project and for how many hours per week. Each row is one team member; each column is one week of the plan period."
+        storageKey="allocations"
+        youCanDo={[
+          'Add a row for each person you want allocated to this project',
+          'Type weekly hours into the cells — totals roll up automatically',
+          'Cost and revenue are calculated from each person\'s rate × hours',
+        ]}
+        whatHappensNext={[
+          'Allocating someone → they unlock the ability to log time and create tasks in this project',
+          'Hours roll up → drives the plan\'s total cost, revenue, profit, and margin',
+          'Editing is locked once the plan is approved — request changes via a revision',
+        ]}
+      />
+
       <div className="plan-toolbar">
         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/t/${activeTeamspaceId}/time/plans/${planId}`)}>← Back to plan</button>
         <div style={{ flex: 1 }}>

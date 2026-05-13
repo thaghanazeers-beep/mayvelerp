@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useAuth } from '../context/AuthContext';
 import { getMyWeek, bulkSaveEntries, submitPeriod, formatINR, todayInTz } from '../api';
+import { PageIntro } from '../components/PageIntro';
 import './PlanPages.css';
 
 // "2h", "2:30", "2.5", "120m" → minutes (or null on parse error)
@@ -139,6 +140,25 @@ export default function MyTimesheetPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        icon="⏱️"
+        title="My Timesheet"
+        actor="You"
+        purpose="Log the hours you worked this week against each project you\'re allocated to. Submit the week when you\'re done so finance can roll it into P&L."
+        storageKey="my-timesheet"
+        youCanDo={[
+          'Type hours into the cells for each project × day combination',
+          'Use the arrows to switch weeks (past weeks are read-only after submission)',
+          'Save a draft as often as you like; it only locks when you submit',
+        ]}
+        whatHappensNext={[
+          'Save → entries are stored as Draft, no one is notified',
+          'Submit → your week-slice goes to your manager\'s Week Approvals queue',
+          'Manager approves → hours feed into project P&L and actual cost',
+          'Manager rejects → week unlocks for editing, you see their comment',
+        ]}
+      />
+
       <div className="plan-toolbar">
         <button className="btn btn-ghost btn-sm" onClick={() => setWeekStart(isoDate(addDays(new Date(weekStart + 'T00:00:00Z'), -7)))}>◀</button>
         <div style={{ flex: 1 }}>
@@ -193,7 +213,7 @@ export default function MyTimesheetPage() {
                   <tr key={a._id} className={a.billable ? '' : 'plan-row-nb'}>
                     <td>
                       <div style={{ fontWeight: 500 }}>{projectIcon(a)} {projectName(a)}</div>
-                      <div className="muted" style={{ fontSize: '0.72rem' }}>{taskTitle(a)} · {a.billable ? 'Billable' : 'Non-billable'}</div>
+                      <div className="muted" style={{ fontSize: '0.75rem' }}>{taskTitle(a)} · {a.billable ? 'Billable' : 'Non-billable'}</div>
                     </td>
                     <td className="num">
                       <span className={Number(consumedH) > allocated ? 'plan-loss' : 'muted'} style={{ fontVariantNumeric: 'tabular-nums' }}>

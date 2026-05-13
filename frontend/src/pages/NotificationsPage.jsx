@@ -4,6 +4,7 @@ import { getNotifications, markNotificationRead, markAllNotificationsRead, delet
 import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
+import { PageIntro } from '../components/PageIntro';
 import './NotificationsPage.css';
 
 const NOTIF_ICONS = {
@@ -111,6 +112,23 @@ export default function NotificationsPage() {
 
   return (
     <div className="notif-page">
+      <PageIntro
+        icon="🔔"
+        title="Notifications"
+        actor="You"
+        purpose="Everything that needs your attention — tasks assigned, comments mentioning you, approvals waiting, plan/week submissions on your queue."
+        storageKey="notifications"
+        youCanDo={[
+          'Click any notification to jump straight to the underlying task/plan/comment',
+          'Mark a single one as read, or use Mark all read to clear the queue',
+          'Filter by type or by teamspace using the sidebar pills',
+        ]}
+        whatHappensNext={[
+          'Reading a notification → unread count drops, but it stays in the list for 30 days',
+          'Once you act on a task notification → the workflow continues (assignee notified, approver pinged, etc.)',
+          'For real-time pop-ups, allow browser notifications when prompted',
+        ]}
+      />
       <div className="notif-page-header">
         <div>
           <h1>Notifications</h1>

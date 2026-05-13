@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { getWeekApprovalQueue, approveSlice, rejectSlice, formatINR } from '../api';
+import { PageIntro } from '../components/PageIntro';
 import './PlanPages.css';
 
 export default function WeekApprovalsPage() {
@@ -33,6 +34,24 @@ export default function WeekApprovalsPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        icon="🗓️"
+        title="Week Approvals"
+        actor="Project Owners"
+        purpose="Weekly time submissions from your team land here. Approve them to feed actual hours into project P&L, or reject with a comment to send the week back."
+        storageKey="week-approvals"
+        youCanDo={[
+          'See each person\'s submitted hours per project for the week',
+          'Approve a slice → hours become billable / count toward actual cost',
+          'Reject with a reason → submitter unlocks the week and sees your note',
+        ]}
+        whatHappensNext={[
+          'Approve → time entries are marked Approved and feed P&L immediately',
+          'Reject → submitter is notified, week reverts to Draft for editing',
+          'Once every slice for a week is approved → period is closed for that user',
+        ]}
+      />
+
       <div className="plan-toolbar">
         <h2 style={{ margin: 0 }}>Week Approvals</h2>
         <span className="muted">{slices.length} pending</span>

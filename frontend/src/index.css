@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
 /* ══════════════════════════════════════════════════════
    MAYVEL — Design System v4 (mayvel.ai brand alignment)
@@ -38,11 +38,52 @@
   --accent-purple: #a29bfe;
   --accent-cyan: #00d4ff;
 
-  /* ── Typography ── */
-  --text: #ededed;
-  --text-secondary: #919191;
-  --text-muted: #575757;
-  --text-link: var(--primary);
+  /* ── Type scale (rem on a 16px base) ── */
+  --font-size-2xs:  0.75rem;   /* 12px — captions, badges. Floor. */
+  --font-size-xs:   0.8125rem; /* 13px — chips, helper text */
+  --font-size-sm:   0.875rem;  /* 14px — secondary body, table cells */
+  --font-size-base: 1rem;      /* 16px — body default */
+  --font-size-lg:   1.125rem;  /* 18px — emphasised body, card titles */
+  --font-size-xl:   1.25rem;   /* 20px — section heads */
+  --font-size-2xl:  1.5rem;    /* 24px — page subheads */
+  --font-size-3xl:  1.875rem;  /* 30px — page titles */
+  --font-size-4xl:  2.25rem;   /* 36px — hero */
+  --line-height-tight:   1.2;
+  --line-height-snug:    1.35;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.65;
+  --font-weight-regular: 400;
+  --font-weight-medium:  500;
+  --font-weight-semi:    600;
+  --font-weight-bold:    700;
+  --font-weight-black:   800;
+  --font-family-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-family-heading: 'Instrument Sans', 'Inter', sans-serif;
+  --font-family-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ── Semantic TEXT colours — dark theme (default) ──
+     Every value targets ≥ 4.5:1 on its expected background (--bg-app,
+     --bg-surface, --bg-elevated). Brand fill tokens (--primary,
+     --primary-light, --accent-*) are NEVER used directly for text — reach
+     for --text-accent or --text-strong instead. */
+  --text-strong:     #f5f5f5; /* 19.6:1 — primary copy, headings */
+  --text-default:    #e4e4e7; /* 16.0:1 — body */
+  --text-secondary:  #b4b4b8; /* 8.9:1  — labels, captions */
+  --text-muted:      #8a8a90; /* 4.9:1  — placeholders, disabled */
+  --text-disabled:   #5a5a5e; /* 3.0:1  — non-interactive only */
+  --text-accent:     #b8ff03; /* lime — readable on DARK only */
+  --text-on-primary: #050505; /* on lime fill */
+  --text-on-success: #001f10;
+  --text-on-danger:  #ffffff;
+  --text-link:       var(--text-accent);
+  --text-link-hover: #d4ff5c;
+  --text-success:    #03ff78; /* 9.5:1 on dark surface */
+  --text-warning:    #ffd166; /* 11.6:1 */
+  --text-danger:     #ff6b6b; /* 5.7:1 */
+  --text-info:       #6fb3ff; /* 7.4:1 */
+  /* Legacy alias — components still reference var(--text). Point it at the
+     semantic body colour so existing rules pick up the new value. */
+  --text:            var(--text-default);
 
   /* ── Borders ── */
   --border: rgba(240, 246, 252, 0.06);
@@ -122,10 +163,23 @@
   --accent-purple: #7c3aed;
   --accent-cyan: #0891b2;
 
-  --text: #0a0a0a;
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
-  --text-link: #0a0a0a;          /* dark in light mode — lime would be illegible */
+  /* Semantic text — retuned for white surfaces. All ≥ 4.5:1 on #ffffff. */
+  --text-strong:     #0a0a0a; /* 19.7:1 */
+  --text-default:    #1f2937; /* 13.4:1 — body */
+  --text-secondary:  #374151; /* 9.1:1  — labels */
+  --text-muted:      #5b6371; /* 5.9:1  — placeholders */
+  --text-disabled:   #9ca3af; /* 2.8:1  — non-interactive only */
+  --text-accent:     #3d6900; /* 7.5:1  — dark olive, brand-adjacent */
+  --text-on-primary: #050505;
+  --text-on-success: #062a16;
+  --text-on-danger:  #ffffff;
+  --text-link:       var(--text-accent);
+  --text-link-hover: #5a8a00;
+  --text-success:    #047857; /* 5.0:1 on white */
+  --text-warning:    #b45309; /* 4.7:1 */
+  --text-danger:     #b91c1c; /* 7.2:1 */
+  --text-info:       #1d4ed8; /* 8.6:1 */
+  --text:            var(--text-default);
 
   --border: rgba(0, 0, 0, 0.06);
   --border-default: rgba(0, 0, 0, 0.10);
@@ -147,6 +201,47 @@
 [data-theme="light"] .page-title { color: #0a0a0a; }
 [data-theme="light"] .header { background: rgba(255, 255, 255, 0.85); }
 [data-theme="light"] .sidebar { background: #fafafa; }
+
+/* ══════════════════════════════════════════════════════
+   BASE TYPOGRAPHY — applied once, every element inherits.
+   Components SHOULD reference --text-strong / --text-default /
+   --text-secondary / --text-muted / --text-accent rather than
+   the legacy --primary* tokens for color:.
+   ══════════════════════════════════════════════════════ */
+html { font-size: 16px; }
+body {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-default);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, .h1 { font-family: var(--font-family-heading); font-size: var(--font-size-3xl); line-height: var(--line-height-tight); font-weight: var(--font-weight-bold); color: var(--text-strong); letter-spacing: -0.022em; }
+h2, .h2 { font-family: var(--font-family-heading); font-size: var(--font-size-2xl); line-height: var(--line-height-tight); font-weight: var(--font-weight-semi); color: var(--text-strong); letter-spacing: -0.018em; }
+h3, .h3 { font-size: var(--font-size-xl); line-height: var(--line-height-snug); font-weight: var(--font-weight-semi); color: var(--text-strong); }
+h4, .h4 { font-size: var(--font-size-lg); line-height: var(--line-height-snug); font-weight: var(--font-weight-semi); color: var(--text-strong); }
+h5, h6  { font-size: var(--font-size-base); font-weight: var(--font-weight-semi); color: var(--text-strong); }
+
+p     { color: var(--text-default); line-height: var(--line-height-relaxed); }
+small { font-size: var(--font-size-sm); color: var(--text-secondary); }
+label { font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); color: var(--text-secondary); }
+.muted, .text-muted     { color: var(--text-muted) !important; }
+.text-secondary         { color: var(--text-secondary) !important; }
+.text-strong            { color: var(--text-strong)   !important; }
+.text-accent            { color: var(--text-accent)   !important; }
+.text-success           { color: var(--text-success)  !important; }
+.text-danger            { color: var(--text-danger)   !important; }
+.text-warning           { color: var(--text-warning)  !important; }
+
+a { color: var(--text-link); }
+a:hover { color: var(--text-link-hover); }
+
+/* Sidebar wordmark — bold on both themes so the brand reads at a glance. */
+.sidebar-title { color: var(--text-strong); font-weight: var(--font-weight-black); }
 
 /* ══════════════════════════════════════════════════════
    RESET & BASE
@@ -261,7 +356,7 @@ small { color: var(--text-secondary); }
 }
 .input:hover, .form-control:hover { border-color: var(--text-muted); }
 .input:focus, .form-control:focus {
-  border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow);
+  border-color: var(--text-accent); box-shadow: 0 0 0 4px var(--primary-glow);
   background: var(--bg-elevated);
 }
 .input::placeholder, .form-control::placeholder { color: var(--text-muted); }
@@ -286,7 +381,7 @@ label.label, .label {
    ══════════════════════════════════════════════════════ */
 .badge {
   display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full);
-  font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.02em;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em;
   text-transform: capitalize; border: 1px solid transparent;
 }
 
@@ -295,9 +390,9 @@ label.label, .label {
 .badge-review { background: rgba(210,153,34,0.12); color: var(--accent-orange); border-color: rgba(210,153,34,0.2); }
 .badge-done { background: rgba(63,185,80,0.12); color: var(--accent-green); border-color: rgba(63,185,80,0.2); }
 .badge-rejected { background: rgba(248,81,73,0.12); color: var(--accent-red); border-color: rgba(248,81,73,0.2); }
-.badge-admin { background: rgba(110,86,207,0.12); color: var(--primary-light); border-color: rgba(110,86,207,0.2); }
+.badge-admin { background: rgba(110,86,207,0.12); color: var(--text-accent); border-color: rgba(110,86,207,0.2); }
 .badge-member { background: rgba(139,148,158,0.12); color: var(--text-secondary); border-color: rgba(139,148,158,0.2); }
-.badge-sm { padding: 1px 6px; font-size: 0.625rem; }
+.badge-sm { padding: 1px 6px; font-size: 0.75rem; }
 .badge-owner { background: rgba(210,153,34,0.12); color: var(--accent-orange); border-color: rgba(210,153,34,0.2); }
 
 /* Status dots */
@@ -310,7 +405,7 @@ label.label, .label {
 /* Project & Task Utilities */
 .project-active-icon { width: 28px; height: 28px; border-radius: var(--radius-xs); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: #fff; }
 .project-card-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
-.project-task-count { font-size: 0.75rem; font-weight: 600; color: var(--primary-light); }
+.project-task-count { font-size: 0.75rem; font-weight: 600; color: var(--text-accent); }
 .task-card-hours, .list-item-hours { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
 .table-hours { font-size: 0.8125rem; text-align: center; }
 
@@ -403,7 +498,7 @@ label.label, .label {
 .form-control:focus {
   background-color: var(--bg-elevated);
   color: var(--text);
-  border-color: var(--primary);
+  border-color: var(--text-accent);
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
@@ -512,7 +607,7 @@ label.label, .label {
   letter-spacing: 0.01em;
   border: 1px solid transparent;
 }
-.badge-admin   { background: rgba(184,255,3,0.12);  color: var(--primary);       border-color: rgba(184,255,3,0.3); }
+.badge-admin   { background: rgba(184,255,3,0.12);  color: var(--text-accent);       border-color: rgba(184,255,3,0.3); }
 .badge-member  { background: rgba(255,255,255,0.06); color: var(--text-secondary); border-color: var(--border-strong); }
 .badge-owner   { background: rgba(255,170,0,0.12); color: var(--accent-orange); border-color: rgba(255,170,0,0.3); }
 
@@ -574,7 +669,7 @@ label.label, .label {
 }
 .surface-table thead th {
   background: var(--bg-surface);
-  font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
   color: var(--text-secondary);
   padding: 14px 16px; text-align: left;
   border-bottom: 1px solid var(--border-strong);

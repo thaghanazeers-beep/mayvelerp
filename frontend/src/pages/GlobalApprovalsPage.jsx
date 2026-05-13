@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { getPlans, getProjects, getTeamspaces, approvePlan, rejectPlan, formatINR } from '../api';
+import { getPlans, getProjects, getTeamspaces, approvePlan, financeCountersignPlan, rejectPlan, formatINR } from '../api';
+import { PageIntro } from '../components/PageIntro';
 import './PlanPages.css';
 
 // One-stop approvals center for Super Admin. Lists every pending plan across
@@ -65,6 +66,17 @@ export default function GlobalApprovalsPage() {
     } catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setBusy(null); }
   };
+  const handleCountersign = async (plan) => {
+    const thresholdRupees = ((plan.financeCountersignThresholdCents || 0)/100).toLocaleString('en-IN');
+    if (!confirm(`Counter-sign "${plan.title}"?\n\nThis plan exceeds ₹${thresholdRupees}. Counter-signing releases the budget for allocation and time logging.`)) return;
+    setBusy(plan._id);
+    try {
+      await financeCountersignPlan(plan._id);
+      toast.success(`Counter-signed: ${plan.title}`);
+      await reload();
+    } catch (e) { toast.error(e.response?.data?.error || e.message); }
+    finally { setBusy(null); }
+  };
   const openReject = (planId) => { setRejectPlanId(planId); setRejectReason(''); };
   const submitReject = async () => {
     if (rejectReason.trim().length < 10) { toast.error('Reason must be at least 10 characters'); return; }
@@ -88,6 +100,25 @@ export default function GlobalApprovalsPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        icon="🌐"
+        title="Approvals — all workspaces"
+        actor="Super Admin"
+        purpose="Bird\'s-eye view of every budget plan waiting on someone\'s approval. Two kinds appear here: regular pending plans (you can approve on an owner\'s behalf) and plans awaiting Finance counter-sign (these are over the org-wide threshold and require your second signature)."
+        storageKey="global-approvals"
+        youCanDo={[
+          'Filter to a specific workspace to see only those plans',
+          'Click a plan to open the full editor and review the breakdown',
+          'Approve a pending plan inline (Super Admin override of the owner)',
+          'Counter-sign a plan that\'s already been owner-approved but is over the ₹5,00,000 finance threshold',
+        ]}
+        whatHappensNext={[
+          'Approve a pending plan → status becomes Approved (or Awaiting Finance if it\'s over threshold)',
+          'Counter-sign → plan becomes Approved, allocations and time logging unlock, owner is notified',
+          'Reject → plan returns to Draft with your comment, PM is notified to revise',
+        ]}
+      />
+
       <div className="plan-toolbar" style={{ flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ margin: 0 }}>Approvals — all workspaces</h2>
         <span className="muted">{filtered.length} pending</span>
@@ -121,12 +152,16 @@ export default function GlobalApprovalsPage() {
                 </div>
                 {list.map(p => {
                   const proj = projById[p.projectId];
+                  const isAwaitingFinance = p.status === 'awaiting_finance';
                   return (
                     <div key={p._id} style={{ padding: '12px 14px', borderTop: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                         <span style={{ flex: 1 }}>
                           <strong>{proj?.name || 'Project'} — {p.periodMonth}</strong>
                           <span className="muted" style={{ marginLeft: 8 }}>{p.title}</span>
+                          {isAwaitingFinance && (
+                            <span className="plan-badge plan-badge-pending" style={{ marginLeft: 8, borderColor: 'var(--accent-orange)', color: 'var(--accent-orange)' }}>🏦 Awaiting Finance</span>
+                          )}
                         </span>
                         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/t/${tsId}/time/plans/${p._id}`)} title="Open editor">Open →</button>
                       </div>
@@ -136,10 +171,14 @@ export default function GlobalApprovalsPage() {
                         <span><span className="muted">Cost</span> <strong>{formatINR(p.totalCostCents)}</strong></span>
                         <span><span className="muted">Revenue</span> <strong>{formatINR(p.totalRevenueCents)}</strong></span>
                         <span><span className="muted">Profit</span> <strong className={p.plannedProfitCents < 0 ? 'plan-loss' : 'plan-profit'}>{formatINR(p.plannedProfitCents)}</strong></span>
-                        <span><span className="muted">Submitted</span> <strong>{new Date(p.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong></span>
+                        <span><span className="muted">{isAwaitingFinance ? 'Owner approved' : 'Submitted'}</span> <strong>{new Date(isAwaitingFinance ? p.ownerApprovedAt : p.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong></span>
                       </div>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button className="btn btn-primary btn-sm" disabled={busy === p._id} onClick={() => handleApprove(p)}>✅ Approve</button>
+                        {isAwaitingFinance ? (
+                          <button className="btn btn-primary btn-sm" disabled={busy === p._id} onClick={() => handleCountersign(p)}>🏦 Counter-sign</button>
+                        ) : (
+                          <button className="btn btn-primary btn-sm" disabled={busy === p._id} onClick={() => handleApprove(p)}>✅ Approve</button>
+                        )}
                         <button className="btn btn-ghost btn-sm" disabled={busy === p._id} style={{ color: '#e74c3c' }} onClick={() => openReject(p._id)}>❌ Reject</button>
                       </div>
                     </div>

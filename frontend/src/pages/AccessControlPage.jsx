@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { PageIntro } from '../components/PageIntro';
 import { listAllUsers, createUser, updateUser, deleteUserAccount,
          listAllMemberships, upsertMembership, updateMembershipRole, removeMembership,
          getTeamspaces } from '../api';
@@ -136,6 +137,25 @@ export default function AccessControlPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 960, margin: '0 auto' }}>
+      <PageIntro
+        icon="🔐"
+        title="Access Control"
+        actor="Super Admin"
+        purpose="The master list of every user across the entire organisation. Create logins, set global roles, and decide which teamspaces each user belongs to."
+        storageKey="access-control"
+        youCanDo={[
+          'Create a brand-new user account with name, email, and starting password',
+          'Add or remove a user from a teamspace (they only see workspaces they\'re in)',
+          'Change global role: Member / Admin / Super Admin — controls what they can do anywhere',
+          'Deactivate a user → they keep history but can\'t log in',
+        ]}
+        whatHappensNext={[
+          'Create user → they can log in immediately with the password you set',
+          'Add to teamspace → that workspace appears in their sidebar on next login',
+          'Change to Super Admin → they get every permission in every workspace (use sparingly)',
+          'Deactivate → existing sessions are revoked within a minute; data is preserved',
+        ]}
+      />
       <h2 style={{ marginBottom: 4 }}>Access control</h2>
       <p className="muted" style={{ marginBottom: 24, fontSize: '0.85rem' }}>
         Add, remove, and change the access level of every user in the workspace. Only you (Super Admin) can see this page.
@@ -274,8 +294,8 @@ export default function AccessControlPage() {
                       return (
                         <tr key={m._id} style={{ borderTop: '1px solid var(--border)' }}>
                           <td style={{ padding: '8px 12px' }}>
-                            {m.userId?.name || '(unknown)'} <span className="muted" style={{ fontSize: '0.72rem' }}>{m.userId?.email}</span>
-                            {isOwner && <span style={{ marginLeft: 6, padding: '1px 6px', background: '#ffeaa7', color: '#5e4a00', borderRadius: 3, fontSize: '0.68rem', fontWeight: 600 }}>OWNER</span>}
+                            {m.userId?.name || '(unknown)'} <span className="muted" style={{ fontSize: '0.75rem' }}>{m.userId?.email}</span>
+                            {isOwner && <span style={{ marginLeft: 6, padding: '1px 6px', background: '#ffeaa7', color: '#5e4a00', borderRadius: 3, fontSize: '0.75rem', fontWeight: 600 }}>OWNER</span>}
                           </td>
                           <td style={{ padding: '8px 12px', width: 140 }}>
                             <select className="input" style={{ padding: '4px 8px', fontSize: '0.78rem' }} value={m.role} onChange={e => handleMembershipRole(m, e.target.value)} disabled={isOwner}>
@@ -285,7 +305,7 @@ export default function AccessControlPage() {
                             </select>
                           </td>
                           <td style={{ padding: '8px 12px', textAlign: 'right', width: 90 }}>
-                            {isOwner ? <span className="muted" style={{ fontSize: '0.72rem' }}>(owner)</span> : (
+                            {isOwner ? <span className="muted" style={{ fontSize: '0.75rem' }}>(owner)</span> : (
                               <button className="btn btn-ghost btn-sm" onClick={() => handleMembershipRemove(m)} style={{ color: '#ff6b6b', fontSize: '0.75rem' }}>Remove</button>
                             )}
                           </td>
@@ -321,7 +341,7 @@ export default function AccessControlPage() {
                 <td style={{ padding: '8px 12px', fontWeight: 500 }}>{row.area}</td>
                 {['view','create','edit','delete'].map(action => (
                   <td key={action} style={{ padding: '8px 12px' }}>
-                    {row[action].length === 0 ? <span className="muted" style={{ fontSize: '0.72rem' }}>nobody</span> : (
+                    {row[action].length === 0 ? <span className="muted" style={{ fontSize: '0.75rem' }}>nobody</span> : (
                       <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {ROLES.map(r => roleHas(row[action], r) && (
                           <span key={r} style={{ padding: '1px 6px', borderRadius: 3, fontSize: '0.7rem', fontWeight: 600,
@@ -338,7 +358,7 @@ export default function AccessControlPage() {
           </tbody>
         </table>
       </div>
-      <p className="muted" style={{ fontSize: '0.72rem', marginTop: 8 }}>
+      <p className="muted" style={{ fontSize: '0.75rem', marginTop: 8 }}>
         🟡 owner = teamspace's <code>ownerId</code> · 🟣 admin = membership.role=admin · 🔵 member · ⚪ viewer
       </p>
     </div>

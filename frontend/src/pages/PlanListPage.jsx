@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
 import { getPlans, createPlan, getProjects, getSprints, formatINR } from '../api';
+import { PageIntro } from '../components/PageIntro';
 import './PlanPages.css';
 
 // Time → Plans page. Project-first flow:
@@ -14,6 +15,7 @@ import './PlanPages.css';
 const STATUS_BADGE = {
   draft:    { label: 'Draft',    className: 'plan-badge plan-badge-draft' },
   pending:  { label: 'Pending',  className: 'plan-badge plan-badge-pending' },
+  awaiting_finance: { label: 'Awaiting Finance', className: 'plan-badge plan-badge-pending' },
   approved: { label: 'Approved', className: 'plan-badge plan-badge-approved' },
   rejected: { label: 'Rejected', className: 'plan-badge plan-badge-rejected' },
 };
@@ -104,6 +106,24 @@ export default function PlanListPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        icon="📋"
+        title="Budget Plans"
+        actor="Project Managers"
+        purpose="A plan is the monthly (or one-shot) budget for a project — who works on it, for how many hours, at what rate. Open or create one to set planned cost, revenue, and margin before work starts."
+        storageKey="plan-list"
+        youCanDo={[
+          'Pick a project to see all its plans (one per month for T&M, one per sprint for Sprint projects)',
+          'Create a new plan — choose the period and add allocations',
+          'Open a draft plan to edit it; open an approved plan to view the locked budget',
+        ]}
+        whatHappensNext={[
+          'Save as draft → numbers update but no approval is needed; only you can see it',
+          'Submit for approval → the plan goes to the project owner\'s Plan Approvals queue',
+          'Once approved → time can be logged against this plan and P&L tracking begins',
+        ]}
+      />
+
       {/* Step 1: choose project */}
       <div className="plan-toolbar" style={{ flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ margin: 0 }}>Time · Plans</h2>
@@ -177,6 +197,7 @@ export default function PlanListPage() {
                   <td className="muted" style={{ fontSize: '0.78rem' }}>
                     {p.status === 'approved' && p.approvedAt ? `✅ ${new Date(p.approvedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` :
                      p.status === 'rejected' && p.rejectedAt ? `❌ ${new Date(p.rejectedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` :
+                     p.status === 'awaiting_finance' && p.ownerApprovedAt ? `🏦 awaiting finance` :
                      p.status === 'pending'  && p.submittedAt? `⏳ submitted ${new Date(p.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` :
                      '—'}
                   </td>

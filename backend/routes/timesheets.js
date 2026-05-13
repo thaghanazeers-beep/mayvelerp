@@ -31,6 +31,11 @@ const Notification          = require('../models/Notification');
 const workflowEngine        = require('../workflowEngine');
 const TeamspaceMembership   = require('../models/TeamspaceMembership');
 
+// Org-wide threshold above which a plan needs Super Admin counter-sign on top
+// of the project owner's approval. Snapshot is saved on each plan at submit
+// time so changing the constant later doesn't retroactively flag old plans.
+const FINANCE_COUNTERSIGN_THRESHOLD_CENTS = 50000000; // ₹5,00,000
+
 // ─── tiny helpers ─────────────────────────────────────────────────────────────
 const ok       = (res, data, code = 200) => res.status(code).json(data);
 const fail     = (res, msg, code = 400)   => res.status(code).json({ error: msg });
@@ -103,25 +108,34 @@ async function recomputePlanTotals(planId) {
 //     forecastLossCents,  actualLossCents,          // 0 if profitable
 //     status: 'healthy' | 'forecast_overrun' | 'realized_loss' | 'open'
 //   }
-async function computeProjectFinancials(projectId, { extraPlanId = null, extraPlanCostCents = 0 } = {}) {
+async function computeProjectFinancials(projectId, { extraPlanId = null, extraPlanCostCents = 0, monthHint = null } = {}) {
   const project = await Project.findById(projectId).lean();
   if (!project) return null;
 
   const contractValueCents = project.contractValueCents || 0;
   const billingType        = project.billingType        || 'tm';
+  const monthlyBudgetCents = project.monthlyBudgetCents || 0;
+  const overallBudgetCents = project.overallBudgetCents || 0;
 
   // All plans for this project that are at least submitted (so committed cost is meaningful).
-  // We include 'pending' alongside 'approved' because pending plans represent owner-committed
-  // intent; an admin should know about them when forecasting.
+  // We include 'pending' and 'awaiting_finance' alongside 'approved' because both represent
+  // owner-committed intent; an admin should know about them when forecasting.
   const plans = await ProjectHoursPlan.find({
     projectId,
-    status: { $in: ['pending', 'approved'] },
+    status: { $in: ['pending', 'awaiting_finance', 'approved'] },
   }).lean();
 
   let committedCostCents    = plans.reduce((s, p) => s + (p.totalCostCents    || 0), 0);
   let committedRevenueCents = plans.reduce((s, p) => s + (p.totalRevenueCents || 0), 0);
   const actualCostCents     = plans.reduce((s, p) => s + (p.totalActualCostCents    || 0), 0);
   const actualRevenueCents  = plans.reduce((s, p) => s + (p.totalActualRevenueCents || 0), 0);
+
+  // Single-month rollups for the monthly-budget cap. monthHint = 'YYYY-MM'; if
+  // omitted we fall back to today's month.
+  const focusMonth = monthHint || new Date().toISOString().slice(0, 7);
+  const monthPlans = plans.filter(p => (p.periodMonth || '').startsWith(focusMonth));
+  const monthlyCommittedCostCents = monthPlans.reduce((s, p) => s + (p.totalCostCents || 0), 0);
+  const monthlyActualCostCents    = monthPlans.reduce((s, p) => s + (p.totalActualCostCents || 0), 0);
 
   // If a caller is testing "what if we approved this draft plan?", fold its cost in.
   if (extraPlanId && !plans.find(p => String(p._id) === String(extraPlanId))) {
@@ -142,8 +156,18 @@ async function computeProjectFinancials(projectId, { extraPlanId = null, extraPl
   else if (forecastProfitCents < 0)                                    status = 'forecast_overrun';
   if (committedCostCents === 0 && actualCostCents === 0)               status = 'open';
 
+  // Budget overrun flags — surfaced on the P&L page in red. monthlyOver fires
+  // when committed plans for the focus month exceed the monthly budget; overallOver
+  // fires when lifetime committed cost exceeds the overall budget.
+  const monthlyOver = monthlyBudgetCents > 0 && monthlyCommittedCostCents > monthlyBudgetCents;
+  const overallOver = overallBudgetCents > 0 && committedCostCents > overallBudgetCents;
+
   return {
     contractValueCents, billingType,
+    monthlyBudgetCents, overallBudgetCents,
+    focusMonth,
+    monthlyCommittedCostCents, monthlyActualCostCents, monthlyOver,
+    overallOver,
     committedCostCents, committedRevenueCents,
     actualCostCents, actualRevenueCents,
     contractRemainingCents,
@@ -216,14 +240,16 @@ router.get('/plans', async (req, res) => {
     filter.createdBy = { $in: candidates };
   }
   if (req.query.awaitingMyApproval === '1' || req.query.awaitingMyApproval === 'true') {
-    filter.status = 'pending';
     // Approvers = project owners + teamspace admins (so a workspace admin who
     // didn't create the project still sees plans submitted in their workspace)
-    // + SuperAdmin (sees everything pending).
+    // + SuperAdmin (sees everything pending AND every awaiting_finance plan
+    // across the org, because counter-signing is SuperAdmin-only).
     const me = await User.findById(req.user.userId).select('isSuperAdmin').lean();
     if (me?.isSuperAdmin) {
-      // No extra filter — return all pending plans across all workspaces.
+      // Owner stage + Finance counter-sign stage are both their job.
+      filter.status = { $in: ['pending', 'awaiting_finance'] };
     } else {
+      filter.status = 'pending';
       const ownedProjects = await Project.find({ ownerId: req.user.userId }).select('_id').lean();
       const adminMems    = await TeamspaceMembership.find({ userId: req.user.userId, role: 'admin', status: 'active' }).select('teamspaceId').lean();
       const ownedIds      = ownedProjects.map(p => p._id);
@@ -375,6 +401,10 @@ router.put('/plans/:id', async (req, res) => {
   if (plan.status !== 'draft' && !isAdmin(req)) return fail(res, 'Only drafts are editable', 403);
   // Allow updating only safe fields here
   ['title', 'attachmentId'].forEach(k => { if (k in req.body) plan[k] = req.body[k]; });
+  if ('scopePercentage' in req.body) {
+    const pct = Number(req.body.scopePercentage);
+    if (Number.isFinite(pct) && pct >= 0 && pct <= 100) plan.scopePercentage = pct;
+  }
   plan.updatedBy = req.user?.email || plan.updatedBy;
   await plan.save();
   ok(res, plan);
@@ -713,27 +743,108 @@ router.post('/plans/:id/approve', async (req, res) => {
   }
 
   const before = { status: plan.status };
-  plan.status     = 'approved';
-  plan.approvedAt = new Date();
-  plan.approvedBy = req.user?.email || req.user?.name;
+
+  // Does this plan need a Finance counter-sign? Trigger if either the planned
+  // cost or revenue exceeds the org-wide threshold. Two-step is strict — even
+  // a Super Admin acting as the first approver still has to come back and
+  // counter-sign explicitly; no auto-pass on the second signature.
+  const maxAmountCents = Math.max(plan.totalCostCents || 0, plan.totalRevenueCents || 0);
+  const overThreshold  = maxAmountCents > FINANCE_COUNTERSIGN_THRESHOLD_CENTS;
+  plan.requiresFinanceCountersign      = overThreshold;
+  plan.financeCountersignThresholdCents = FINANCE_COUNTERSIGN_THRESHOLD_CENTS;
+  plan.ownerApprovedAt  = new Date();
+  plan.ownerApprovedBy  = req.user?.email || req.user?.name;
+
+  if (overThreshold) {
+    plan.status = 'awaiting_finance';
+  } else {
+    plan.status     = 'approved';
+    plan.approvedAt = new Date();
+    plan.approvedBy = req.user?.email || req.user?.name;
+  }
   await plan.save();
-  await audit({ teamspaceId: plan.teamspaceId, entityType: 'plan', entityId: plan._id, action: 'approve', before, after: { status: 'approved' }, req });
+  await audit({ teamspaceId: plan.teamspaceId, entityType: 'plan', entityId: plan._id, action: 'approve', before, after: { status: plan.status, requiresFinanceCountersign: plan.requiresFinanceCountersign }, req });
 
   // Services projects: approving the parent cascades approval to every child
   // plan (one per month of the project's duration). Child plans inherit the
   // same approvedAt/By so the per-month budgets are immediately spendable.
+  // If the parent went to awaiting_finance, child plans inherit that state too.
   const project = await Project.findById(plan.projectId).select('type').lean();
   if (project?.type === 'services') {
     const children = await ProjectHoursPlan.find({ parentPlanId: plan._id, status: { $in: ['draft', 'pending'] } });
     for (const ch of children) {
       const chBefore = { status: ch.status };
-      ch.status     = 'approved';
-      ch.approvedAt = plan.approvedAt;
-      ch.approvedBy = plan.approvedBy;
+      ch.status     = plan.status;
+      ch.ownerApprovedAt = plan.ownerApprovedAt;
+      ch.ownerApprovedBy = plan.ownerApprovedBy;
+      ch.requiresFinanceCountersign      = plan.requiresFinanceCountersign;
+      ch.financeCountersignThresholdCents = plan.financeCountersignThresholdCents;
+      if (plan.status === 'approved') {
+        ch.approvedAt = plan.approvedAt;
+        ch.approvedBy = plan.approvedBy;
+        ch.financeCountersignedAt = plan.financeCountersignedAt;
+        ch.financeCountersignedBy = plan.financeCountersignedBy;
+      }
       await ch.save();
-      await audit({ teamspaceId: ch.teamspaceId, entityType: 'plan', entityId: ch._id, action: 'approve', before: chBefore, after: { status: 'approved', cascadedFrom: String(plan._id) }, req });
+      await audit({ teamspaceId: ch.teamspaceId, entityType: 'plan', entityId: ch._id, action: 'approve', before: chBefore, after: { status: ch.status, cascadedFrom: String(plan._id) }, req });
     }
-    if (children.length) console.log(`[services] cascade-approved ${children.length} child plans of ${plan._id}`);
+    if (children.length) console.log(`[services] cascade-approved ${children.length} child plans of ${plan._id} → ${plan.status}`);
+  }
+
+  if (plan.submittedBy) {
+    const owner = await User.findOne({ email: plan.submittedBy });
+    if (owner?.name) {
+      const fullyApproved = plan.status === 'approved';
+      await notify({
+        type: fullyApproved ? 'plan_approved' : 'plan_awaiting_finance',
+        title: fullyApproved ? 'Project hours plan approved ✅' : 'Plan approved — awaiting Finance counter-sign ⏳',
+        message: fullyApproved
+          ? `Your plan "${plan.title}" was approved by ${req.user?.name || 'Admin'}. You can now allocate hours to users.`
+          : `Owner approved "${plan.title}". It exceeds ₹${(FINANCE_COUNTERSIGN_THRESHOLD_CENTS/100).toLocaleString('en-IN')} so a Super Admin will counter-sign before the budget is released.`,
+        userId: owner.name,
+        actorName: req.user?.name,
+        teamspaceId: plan.teamspaceId,
+        link: `/t/${plan.teamspaceId}/time/plans/${plan._id}`,
+      });
+    }
+  }
+  if (plan.status === 'approved') {
+    workflowEngine.fire('plan_approved', plan.toObject(), { actor: req.user?.name });
+  } else {
+    workflowEngine.fire('plan_awaiting_finance', plan.toObject(), { actor: req.user?.name });
+  }
+  ok(res, plan);
+});
+
+// POST /api/time/plans/:id/finance-countersign — Super Admin only
+// Awaiting Finance → Approved. Releases the budget for allocation/time logging.
+router.post('/plans/:id/finance-countersign', async (req, res) => {
+  const me = await User.findById(req.user.userId).select('isSuperAdmin email name').lean();
+  if (!me?.isSuperAdmin) return fail(res, 'Super Admin only', 403);
+  const plan = await ProjectHoursPlan.findById(req.params.id);
+  if (!plan) return fail(res, 'Plan not found', 404);
+  if (plan.status !== 'awaiting_finance') return fail(res, `Cannot counter-sign a ${plan.status} plan`, 400);
+
+  const before = { status: plan.status };
+  plan.status                 = 'approved';
+  plan.approvedAt             = new Date();
+  plan.approvedBy             = req.user?.email || req.user?.name;
+  plan.financeCountersignedAt = plan.approvedAt;
+  plan.financeCountersignedBy = req.user?.email || req.user?.name;
+  await plan.save();
+  await audit({ teamspaceId: plan.teamspaceId, entityType: 'plan', entityId: plan._id, action: 'finance_countersign', before, after: { status: 'approved' }, req });
+
+  // Cascade to services-child plans that are also awaiting finance.
+  const children = await ProjectHoursPlan.find({ parentPlanId: plan._id, status: 'awaiting_finance' });
+  for (const ch of children) {
+    const chBefore = { status: ch.status };
+    ch.status                 = 'approved';
+    ch.approvedAt             = plan.approvedAt;
+    ch.approvedBy             = plan.approvedBy;
+    ch.financeCountersignedAt = plan.financeCountersignedAt;
+    ch.financeCountersignedBy = plan.financeCountersignedBy;
+    await ch.save();
+    await audit({ teamspaceId: ch.teamspaceId, entityType: 'plan', entityId: ch._id, action: 'finance_countersign', before: chBefore, after: { status: 'approved', cascadedFrom: String(plan._id) }, req });
   }
 
   if (plan.submittedBy) {
@@ -741,8 +852,8 @@ router.post('/plans/:id/approve', async (req, res) => {
     if (owner?.name) {
       await notify({
         type: 'plan_approved',
-        title: 'Project hours plan approved ✅',
-        message: `Your plan "${plan.title}" was approved by ${req.user?.name || 'Admin'}. You can now allocate hours to users.`,
+        title: 'Plan counter-signed by Finance ✅',
+        message: `Super Admin ${req.user?.name || ''} counter-signed your plan "${plan.title}". You can now allocate hours.`,
         userId: owner.name,
         actorName: req.user?.name,
         teamspaceId: plan.teamspaceId,
@@ -764,7 +875,15 @@ router.post('/plans/:id/reject', async (req, res) => {
 
   const plan = await ProjectHoursPlan.findById(req.params.id);
   if (!plan) return fail(res, 'Plan not found', 404);
-  if (plan.status !== 'pending') return fail(res, `Cannot reject a ${plan.status} plan`, 400);
+  // Reject is valid from both 'pending' (owner stage) and 'awaiting_finance' (Super
+  // Admin can decline at the counter-sign stage). Anything else is a no-op.
+  if (plan.status !== 'pending' && plan.status !== 'awaiting_finance') {
+    return fail(res, `Cannot reject a ${plan.status} plan`, 400);
+  }
+  // Counter-sign rejection is Super-Admin-only by definition.
+  if (plan.status === 'awaiting_finance' && !isSuper) {
+    return fail(res, 'Only Super Admin can reject a plan awaiting Finance counter-sign', 403);
+  }
   if (!isSuper && plan.submittedBy && String(plan.submittedBy) === String(me?.email)) {
     return fail(res, 'You submitted this plan — another admin must reject it.', 403);
   }
@@ -1654,8 +1773,8 @@ router.get('/reports/project/:projectId/pnl', async (req, res) => {
 
   // Aggregate lines and per-bucket breakdown across all plans
   const lines   = await ProjectHoursPlanLine.find({ planId: { $in: plans.map(p => p._id) } }).lean();
-  const project = await Project.findById(req.params.projectId).select('name icon defaultBillRateCents ownerId contractValueCents billingType').lean();
-  const projectFinancials = await computeProjectFinancials(req.params.projectId);
+  const project = await Project.findById(req.params.projectId).select('name icon defaultBillRateCents ownerId contractValueCents billingType monthlyBudgetCents overallBudgetCents').lean();
+  const projectFinancials = await computeProjectFinancials(req.params.projectId, { monthHint: month });
   const buckets = await RateBucket.find({ teamspaceId: tsId(req) }).lean();
   const bucketMap = Object.fromEntries(buckets.map(b => [String(b._id), b]));
   const byBucket = {};

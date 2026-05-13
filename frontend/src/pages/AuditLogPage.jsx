@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuditLog } from '../api';
 import { useTeamspace } from '../context/TeamspaceContext';
+import { PageIntro } from '../components/PageIntro';
 import './PlanPages.css';
 
 const ENTITY_LABELS = {
@@ -81,7 +82,7 @@ export default function AuditLogPage() {
         <summary style={{ fontSize: '0.7rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
           {rows.length} field change{rows.length === 1 ? '' : 's'}
         </summary>
-        <table style={{ width: '100%', marginTop: 6, fontSize: '0.72rem', borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', marginTop: 6, fontSize: '0.75rem', borderCollapse: 'collapse' }}>
           <thead>
             <tr><th style={{ textAlign: 'left' }}>Field</th><th style={{ textAlign: 'left' }}>Before</th><th style={{ textAlign: 'left' }}>After</th></tr>
           </thead>
@@ -101,6 +102,24 @@ export default function AuditLogPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        icon="📜"
+        title="Audit Log"
+        actor="Admins & Auditors"
+        purpose="Every money-relevant change — plans approved, allocations edited, time entries adjusted — is recorded here. Read-only by design."
+        storageKey="audit-log"
+        youCanDo={[
+          'Filter by entity type (plan, allocation, time entry) or by date',
+          'See who made each change, when, and what the before/after values were',
+          'Use this to investigate a P&L discrepancy or a disputed approval',
+        ]}
+        whatHappensNext={[
+          'Entries here can\'t be edited or deleted — this is the compliance record',
+          'New entries are added automatically every time anyone changes a finance object',
+          'If you spot an unauthorised change → Access Control is where you revoke that user',
+        ]}
+      />
+
       <div className="plan-toolbar" style={{ flexWrap: 'wrap', gap: 12 }}>
         <button className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard?tab=finance')}>← Dashboard</button>
         <h2 style={{ margin: 0 }}>📜 Audit log</h2>
@@ -159,14 +178,14 @@ export default function AuditLogPage() {
                   </td>
                   <td>
                     {ENTITY_LABELS[e.entityType] || e.entityType}
-                    <div className="muted" style={{ fontSize: '0.65rem' }}>{String(e.entityId).slice(-8)}</div>
+                    <div className="muted" style={{ fontSize: '0.75rem' }}>{String(e.entityId).slice(-8)}</div>
                   </td>
                   <td>
                     <span className={`plan-badge ${ACTION_COLOR[e.action] || 'plan-badge-draft'}`}>{e.action}</span>
                   </td>
                   <td>
                     {e.actorName || <span className="muted">—</span>}
-                    {e.actorRole && <div className="muted" style={{ fontSize: '0.65rem' }}>{e.actorRole}</div>}
+                    {e.actorRole && <div className="muted" style={{ fontSize: '0.75rem' }}>{e.actorRole}</div>}
                   </td>
                   <td>
                     {e.reason && <div style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>{e.reason}</div>}

@@ -64,7 +64,7 @@
   color: var(--accent-orange);
   margin-top: 8px;
 }
-.orgm-banner-warn a { color: var(--primary-light); cursor: pointer; text-decoration: underline; }
+.orgm-banner-warn a { color: var(--text-accent); cursor: pointer; text-decoration: underline; }
 
 .orgm-empty {
   text-align: center;
@@ -96,7 +96,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 .orgm-card.is-expanded {
-  border-color: var(--primary);
+  border-color: var(--text-accent);
   box-shadow: 0 0 0 2px var(--primary-glow, rgba(110,86,207,0.15));
 }
 
@@ -116,7 +116,7 @@
 }
 .orgm-card-email {
   margin: 2px 0 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -125,7 +125,7 @@
   display: inline-flex; align-items: center;
   padding: 2px 8px;
   border-radius: var(--radius-full);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -133,7 +133,7 @@
 }
 .orgm-pill-admin {
   background: rgba(110, 86, 207, 0.12);
-  color: var(--primary-light);
+  color: var(--text-accent);
   border: 1px solid rgba(110, 86, 207, 0.3);
 }
 .orgm-pill-chart {
@@ -177,7 +177,7 @@
   font-variant-numeric: tabular-nums;
 }
 .orgm-stat-l {
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;

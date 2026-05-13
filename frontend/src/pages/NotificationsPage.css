@@ -37,7 +37,7 @@
 .notif-pill.active {
   background: var(--bg-elevated);
   color: var(--text);
-  border-color: var(--primary);
+  border-color: var(--text-accent);
   box-shadow: 0 0 0 2px var(--primary-glow);
 }
 .notif-pill-count {
@@ -45,13 +45,13 @@
   min-width: 20px; height: 18px; padding: 0 5px;
   background: var(--bg-hover);
   border-radius: 100px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 .notif-pill.active .notif-pill-count {
   background: rgba(110,86,207,0.2);
-  color: var(--primary-light);
+  color: var(--text-accent);
 }
 
 .notif-page-list {
@@ -103,7 +103,7 @@
   padding: 1px 8px;
   background: var(--bg-hover);
   border-radius: var(--radius-full);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;

@@ -4,11 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
 import {
-  getPlan, deletePlan, submitPlan, approvePlan, rejectPlan, reopenPlan, allocatePlan,
+  getPlan, deletePlan, submitPlan, approvePlan, financeCountersignPlan, rejectPlan, reopenPlan, allocatePlan,
   getRateBuckets, getTaskTypes, getTeam, getProjects, getPlanAudit,
-  spawnChildPlans, enableRecurrence,
+  spawnChildPlans, enableRecurrence, updatePlan,
   createPlanLine, updatePlanLine, deletePlanLine, formatINR, exportPlanXlsxUrl,
 } from '../api';
+import { PageIntro, NextStepHint } from '../components/PageIntro';
 import './PlanPages.css';
 
 const STATUSES = ['Yet-To-Start','In-Progress','On-hold','Completed','Cancelled'];
@@ -17,6 +18,7 @@ const DISTRIBUTIONS = ['Continuous','Distributed','Open'];
 const STATUS_BADGE = {
   draft:    { label: 'Draft',    cls: 'plan-badge-draft' },
   pending:  { label: 'Pending Approval', cls: 'plan-badge-pending' },
+  awaiting_finance: { label: 'Awaiting Finance', cls: 'plan-badge-pending' },
   approved: { label: 'Approved', cls: 'plan-badge-approved' },
   rejected: { label: 'Rejected', cls: 'plan-badge-rejected' },
 };
@@ -69,6 +71,10 @@ export default function PlanEditorPage() {
   // Submitter can't approve their own plan — matches the backend gate.
   const isSubmitter = plan.submittedBy && user?.email && plan.submittedBy === user.email;
   const canApprove = plan.status === 'pending' && isAdmin && (isSuper || !isSubmitter);
+  // Counter-sign is the second-stage approval, gated to Super Admin only.
+  const canCountersign = plan.status === 'awaiting_finance' && isSuper;
+  // Super Admin can also reject at the counter-sign stage.
+  const canRejectAtCountersign = plan.status === 'awaiting_finance' && isSuper;
   const canReopen  = plan.status === 'rejected' && (isOwner || isAdmin);
 
   const totals = {
@@ -175,6 +181,14 @@ export default function PlanEditorPage() {
     catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setBusy(false); }
   };
+  const handleCountersign = async () => {
+    const thresholdRupees = ((plan.financeCountersignThresholdCents || 0) / 100).toLocaleString('en-IN');
+    if (!confirm(`Finance counter-sign for "${plan.title}"?\n\nThis plan exceeds ₹${thresholdRupees}. Counter-signing releases the budget so allocations and time logging can begin.`)) return;
+    setBusy(true);
+    try { await financeCountersignPlan(planId); await reload(); toast.success('Plan counter-signed — budget released'); }
+    catch (e) { toast.error(e.response?.data?.error || e.message); }
+    finally { setBusy(false); }
+  };
   const handleReopen = async () => {
     if (!confirm('Reopen this rejected plan as a draft?')) return;
     setBusy(true);
@@ -196,6 +210,26 @@ export default function PlanEditorPage() {
 
   return (
     <div className="plan-page">
+      <PageIntro
+        compact
+        icon="💰"
+        title={`Plan editor — ${plan.title}`}
+        actor="PM / Project Owner"
+        purpose="The full breakdown of a budget plan. Edit allocations and rates while it\'s a Draft, or review/approve when it\'s been submitted."
+        storageKey="plan-editor"
+        youCanDo={[
+          'Edit the title, period, and notes while the plan is in Draft',
+          'Open Allocations to add team members and weekly hours',
+          'Submit for approval when the numbers look right',
+          'If you\'re the project owner — approve or reject a submitted plan',
+        ]}
+        whatHappensNext={[
+          'Submit → plan locks for editing and is sent to the project owner',
+          'Approve → plan becomes the active budget; time entries can now reference it',
+          'Reject → plan returns to Draft with your comment; PM can edit and resubmit',
+        ]}
+      />
+
       <div className="plan-toolbar">
         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/t/${activeTeamspaceId}/time/plans`)}>← Back</button>
         <div style={{ flex: 1 }}>
@@ -211,6 +245,8 @@ export default function PlanEditorPage() {
         {canSubmit  && <button className="btn btn-primary btn-sm" disabled={busy} onClick={handleSubmit}>📤 Submit for Approval</button>}
         {canApprove && <button className="btn btn-primary btn-sm" disabled={busy} onClick={handleApprove}>✅ Approve</button>}
         {canApprove && <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setShowReject(true)}>❌ Reject</button>}
+        {canCountersign && <button className="btn btn-primary btn-sm" disabled={busy} onClick={handleCountersign}>🏦 Finance Counter-sign</button>}
+        {canRejectAtCountersign && <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setShowReject(true)}>❌ Reject</button>}
         {canReopen  && <button className="btn btn-ghost btn-sm" disabled={busy} onClick={handleReopen}>🔄 Reopen as Draft</button>}
 
         {/* Services parent plan: spawn one child plan per month of the project's duration. */}
@@ -286,6 +322,52 @@ export default function PlanEditorPage() {
         );
       })()}
 
+      {/* Scope % vs. project overall budget — declare what share of the project
+          this plan delivers; the system flags variance vs. the expected cost. */}
+      {project && project.overallBudgetCents > 0 && (() => {
+        const overall = project.overallBudgetCents;
+        const scopePct = plan.scopePercentage || 0;
+        const expectedCost = Math.round(overall * scopePct / 100);
+        const planCost = plan.totalCostCents || 0;
+        const variancePct = expectedCost > 0 ? Math.round(((planCost - expectedCost) / expectedCost) * 100) : 0;
+        const flagged = scopePct > 0 && Math.abs(variancePct) > 15;
+        const updateScope = async (val) => {
+          const v = Math.max(0, Math.min(100, Number(val) || 0));
+          try { await updatePlan(planId, { scopePercentage: v }); await reload(); }
+          catch (e) { toast.error(e.response?.data?.error || e.message); }
+        };
+        return (
+          <div className={`plan-banner ${flagged ? (variancePct > 0 ? 'plan-banner-reject' : 'plan-banner-pending') : 'plan-banner-approved'}`}
+               style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 320px' }}>
+              <strong>📐 Scope vs. budget:</strong>{' '}
+              <label style={{ marginLeft: 6 }}>
+                This plan delivers{' '}
+                <input
+                  type="number" min={0} max={100} step={1}
+                  value={scopePct}
+                  disabled={!editable}
+                  onChange={e => updateScope(e.target.value)}
+                  style={{ width: 56, padding: '2px 6px', textAlign: 'right', background: 'var(--bg-input)', border: '1px solid var(--border-strong)', borderRadius: 4, color: 'var(--text)' }}
+                />% of the project.
+              </label>
+              {scopePct > 0 && (
+                <span style={{ marginLeft: 12 }}>
+                  Expected cost at this scope: <strong>{formatINR(expectedCost)}</strong>; actual plan cost: <strong>{formatINR(planCost)}</strong>.
+                  {variancePct !== 0 && (
+                    <span style={{ marginLeft: 6 }}>
+                      {variancePct > 0
+                        ? <>Over by <strong className="plan-loss">{variancePct}%</strong> — spending more budget than scope delivered.</>
+                        : <>Under by <strong className="plan-profit">{Math.abs(variancePct)}%</strong> — leaner than target.</>}
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {plan.status === 'rejected' && plan.rejectionReason && (
         <div className="plan-banner plan-banner-reject">
           <strong>Rejected by {plan.rejectedBy}:</strong> {plan.rejectionReason}
@@ -312,6 +394,20 @@ export default function PlanEditorPage() {
       {plan.status === 'pending' && (
         <div className="plan-banner plan-banner-pending">
           <strong>Pending</strong> admin approval — submitted by {plan.submittedBy} on {new Date(plan.submittedAt).toLocaleDateString('en-IN')}.
+          {(plan.totalCostCents > (plan.financeCountersignThresholdCents || 50000000) || plan.totalRevenueCents > (plan.financeCountersignThresholdCents || 50000000)) && (
+            <NextStepHint block>
+              This plan exceeds ₹{((plan.financeCountersignThresholdCents || 50000000)/100).toLocaleString('en-IN')} — after the owner approves, a <strong>Super Admin must counter-sign</strong> before the budget is released.
+            </NextStepHint>
+          )}
+        </div>
+      )}
+      {plan.status === 'awaiting_finance' && (
+        <div className="plan-banner plan-banner-pending" style={{ borderLeftColor: 'var(--accent-orange)' }}>
+          <strong>Awaiting Finance counter-sign</strong> — owner {plan.ownerApprovedBy} approved on {new Date(plan.ownerApprovedAt).toLocaleDateString('en-IN')}.
+          This plan exceeds ₹{((plan.financeCountersignThresholdCents || 0)/100).toLocaleString('en-IN')}, so a Super Admin must counter-sign before allocations and time logging open up.
+          <NextStepHint block>
+            <strong>Counter-sign</strong> → status becomes Approved, allocations & time logging unlock, owner is notified. <strong>Reject</strong> → plan returns to Draft with your comment.
+          </NextStepHint>
         </div>
       )}
 
@@ -338,7 +434,7 @@ export default function PlanEditorPage() {
                 const label = labelMap[h.action] || h.action;
                 return (
                   <div key={h._id || i} style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <span style={{ display: 'inline-block', width: 80, padding: '2px 8px', background: color, color: 'white', borderRadius: 4, fontWeight: 600, fontSize: '0.72rem', textAlign: 'center', flexShrink: 0 }}>{label}</span>
+                    <span style={{ display: 'inline-block', width: 80, padding: '2px 8px', background: color, color: 'white', borderRadius: 4, fontWeight: 600, fontSize: '0.75rem', textAlign: 'center', flexShrink: 0 }}>{label}</span>
                     <span style={{ flex: 1 }}>
                       by <strong>{h.actorName || h.actorEmail || 'system'}</strong>
                       {h.reason && <> — <em>"{h.reason}"</em></>}

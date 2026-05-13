@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { getWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, toggleWorkflow, getWorkflowLogs, getTeam, getProjects } from '../api';
+import { getWorkflows, createWorkflow, updateWorkflow, deleteWorkflow, toggleWorkflow, getWorkflowLogs, getTeam, getProjects, copyWorkflows } from '../api';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
 import ViewTabs from '../components/ViewTabs';
+import { PageIntro } from '../components/PageIntro';
 import './WorkflowsPage.css';
 
 // Each trigger declares which `category` it belongs to ('task' | 'plan').
@@ -70,7 +71,7 @@ const STATUSES = ['Not Yet Started', 'In Progress', 'In Review', 'Completed', 'R
 const WF_COLORS = ['#6c5ce7','#00cec9','#fd79a8','#fdcb6e','#74b9ff','#ff6b6b','#55efc4','#a29bfe'];
 
 export default function WorkflowsPage() {
-  const { activeTeamspaceId } = useTeamspace();
+  const { activeTeamspaceId, teamspaces } = useTeamspace();
   const toast = useToast();
   const showErr = (err, fallback) => {
     console.error(err);
@@ -126,6 +127,44 @@ export default function WorkflowsPage() {
       setProjects(pRes.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
+  };
+
+  // ── Copy-from-teamspace modal state ──
+  // Pulls every workflow from another teamspace and clones a chosen subset into
+  // the current one. Copies are independent — editing them never touches the source.
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [copySourceId, setCopySourceId] = useState('');
+  const [copySourceWorkflows, setCopySourceWorkflows] = useState([]);
+  const [copySelected, setCopySelected] = useState(() => new Set());
+  const [copyBusy, setCopyBusy] = useState(false);
+  const otherTeamspaces = (teamspaces || []).filter(t => String(t._id) !== String(activeTeamspaceId) && !t.isPersonal);
+
+  const openCopyModal = () => {
+    setCopySourceId(''); setCopySourceWorkflows([]); setCopySelected(new Set());
+    setShowCopyModal(true);
+  };
+  const loadCopySource = async (tsId) => {
+    setCopySourceId(tsId);
+    if (!tsId) { setCopySourceWorkflows([]); setCopySelected(new Set()); return; }
+    try {
+      const r = await getWorkflows(tsId);
+      setCopySourceWorkflows(r.data || []);
+      setCopySelected(new Set((r.data || []).map(w => w._id)));
+    } catch (err) { showErr(err, 'Could not load workflows from that teamspace'); }
+  };
+  const toggleCopyPick = (id) => {
+    setCopySelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  };
+  const handleCopy = async () => {
+    if (!copySourceId || copySelected.size === 0) return;
+    setCopyBusy(true);
+    try {
+      const r = await copyWorkflows(copySourceId, activeTeamspaceId, [...copySelected]);
+      toast?.success(`Copied ${r.data.copied} workflow${r.data.copied === 1 ? '' : 's'}`);
+      setShowCopyModal(false);
+      fetchAll();
+    } catch (err) { showErr(err, 'Could not copy workflows'); }
+    finally { setCopyBusy(false); }
   };
 
   const openBuilder = (wf = null) => {
@@ -287,15 +326,40 @@ export default function WorkflowsPage() {
 
   return (
     <div className="workflows-page">
-      <ViewTabs 
-        views={views} 
-        activeViewId={activeViewId} 
-        onChangeView={setActiveViewId} 
-        onAddView={handleAddView} 
+      <PageIntro
+        icon="⚡"
+        title="Workflows"
+        actor="Admins"
+        purpose="Automate the boring parts. A workflow watches for an event (a task is created, a status changes, etc.) and runs an action — assign someone, set a due date, send a notification. Workflows here only run inside this teamspace; they never affect other teamspaces."
+        storageKey="workflows-list"
+        youCanDo={[
+          'Create a workflow with a trigger (when X happens) and an action (do Y)',
+          'Toggle a workflow on/off without deleting it',
+          'Open the run log to see when each workflow last fired',
+          'Copy rules from another teamspace as a starting point (the copies are independent)',
+        ]}
+        whatHappensNext={[
+          'Turn on → the workflow runs automatically every time its trigger fires in this teamspace',
+          'Turn off → no actions run, but the rule is kept so you can re-enable later',
+          'Note: task review (Owner approves/rejects) and plan approval are not workflows — they\'re built-in, owner-based rules',
+        ]}
+      />
+      <ViewTabs
+        views={views}
+        activeViewId={activeViewId}
+        onChangeView={setActiveViewId}
+        onAddView={handleAddView}
       />
 
-      <div className="team-toolbar" style={{ paddingTop: 0 }}>
+      <div className="team-toolbar" style={{ paddingTop: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="tasks-count">{workflows.length} workflows</span>
+        <div style={{ flex: 1 }} />
+        {otherTeamspaces.length > 0 && (
+          <button className="btn btn-ghost btn-sm" onClick={openCopyModal} title="Clone workflows from another teamspace into this one">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          &nbsp;Copy from teamspace
+          </button>
+        )}
         <button className="btn btn-primary btn-sm" onClick={openBuilder}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           New Workflow
@@ -547,6 +611,62 @@ export default function WorkflowsPage() {
                 <button className="btn btn-primary btn-sm" onClick={handleSave}
                   disabled={!wfName || !wfTrigger || wfActions.length === 0}>{editingWfId ? 'Save Changes' : 'Create Workflow'}</button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Copy-from-teamspace modal */}
+      {showCopyModal && (
+        <div className="modal-overlay" onClick={() => !copyBusy && setShowCopyModal(false)}>
+          <div className="modal animate-in" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📋 Copy workflows from another teamspace</h2>
+              <button className="btn-icon" onClick={() => !copyBusy && setShowCopyModal(false)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div style={{ padding: '0 4px 12px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              Pick a teamspace to copy from. The copies belong to this teamspace — editing them later won\'t affect the source.
+            </div>
+            <div className="form-field" style={{ marginBottom: 12 }}>
+              <label className="label">Source teamspace</label>
+              <select className="input" value={copySourceId} onChange={(e) => loadCopySource(e.target.value)}>
+                <option value="">— pick one —</option>
+                {otherTeamspaces.map(t => (
+                  <option key={t._id} value={t._id}>{t.icon || '🏢'} {t.name}</option>
+                ))}
+              </select>
+            </div>
+            {copySourceId && (
+              <div className="form-field" style={{ marginBottom: 12 }}>
+                <label className="label">Workflows to copy ({copySelected.size}/{copySourceWorkflows.length} selected)</label>
+                {copySourceWorkflows.length === 0 ? (
+                  <p className="muted" style={{ fontSize: '0.78rem', margin: '6px 0 0' }}>That teamspace has no workflows to copy.</p>
+                ) : (
+                  <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: 6 }}>
+                    {copySourceWorkflows.map(w => {
+                      const trigInfo = TRIGGERS.find(t => t.type === w.trigger?.type);
+                      return (
+                        <label key={w._id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 6, cursor: 'pointer', background: copySelected.has(w._id) ? 'var(--bg-selected)' : 'transparent' }}>
+                          <input type="checkbox" checked={copySelected.has(w._id)} onChange={() => toggleCopyPick(w._id)} />
+                          <span style={{ fontSize: 18 }}>{trigInfo?.icon || '⚡'}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{w.name}</div>
+                            <div className="muted" style={{ fontSize: '0.75rem' }}>{trigInfo?.label || w.trigger?.type} · {w.actions?.length || 0} action{(w.actions?.length || 0) !== 1 ? 's' : ''} {w.enabled ? '' : '· (off)'}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowCopyModal(false)} disabled={copyBusy}>Cancel</button>
+              <button className="btn btn-primary btn-sm" onClick={handleCopy} disabled={copyBusy || !copySourceId || copySelected.size === 0}>
+                {copyBusy ? 'Copying…' : `Copy ${copySelected.size} workflow${copySelected.size === 1 ? '' : 's'}`}
+              </button>
             </div>
           </div>
         </div>

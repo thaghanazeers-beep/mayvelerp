@@ -6,6 +6,7 @@ import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
 import TaskDetailPage from './TaskDetailPage';
 import ViewTabs from '../components/ViewTabs';
+import { PageIntro } from '../components/PageIntro';
 import './ProjectsPage.css';
 
 const PROJECT_ICONS = ['📁', '🚀', '💼', '🎯', '📊', '🛠️', '🎨', '📝', '🔬', '🌐', '📱', '🏗️'];
@@ -49,11 +50,14 @@ export default function ProjectsPage() {
   const [scope, setScope] = useState('teamspace');              // 'teamspace' or 'org' — org makes the project visible to every team
   const [projectType, setProjectType] = useState('tm');         // tm / sprint / services / maintenance — drives budget plan workflow
   const [durationMonths, setDurationMonths] = useState('');     // for services / maintenance
+  const [monthlyBudget, setMonthlyBudget] = useState('');       // ₹ cost cap per month
+  const [overallBudget, setOverallBudget] = useState('');       // ₹ overall cost cap
 
   const openCreateModal = () => {
     setEditingProjectId(null);
     setName(''); setDescription(''); setIcon('📁'); setColor('#6c5ce7');
     setBillingType('tm'); setContractValue('');
+    setMonthlyBudget(''); setOverallBudget('');
     setShowCreate(true);
   };
   const openEditModal = (p) => {
@@ -67,6 +71,8 @@ export default function ProjectsPage() {
     setScope(p.scope || 'teamspace');
     setProjectType(p.type || 'tm');
     setDurationMonths(p.durationMonths ? String(p.durationMonths) : '');
+    setMonthlyBudget(p.monthlyBudgetCents ? String(Math.round(p.monthlyBudgetCents / 100)) : '');
+    setOverallBudget(p.overallBudgetCents ? String(Math.round(p.overallBudgetCents / 100)) : '');
     setShowCreate(true);
   };
 
@@ -146,10 +152,13 @@ export default function ProjectsPage() {
     if (!name.trim()) return;
     try {
       const contractValueCents = Math.max(0, Math.round(Number(contractValue || 0) * 100));
+      const monthlyBudgetCents = Math.max(0, Math.round(Number(monthlyBudget || 0) * 100));
+      const overallBudgetCents = Math.max(0, Math.round(Number(overallBudget || 0) * 100));
       const payload = {
         name, description, icon, color, billingType, contractValueCents, scope,
         type: projectType,
         durationMonths: Number(durationMonths) || 0,
+        monthlyBudgetCents, overallBudgetCents,
       };
       if (editingProjectId) {
         await updateProject(editingProjectId, payload);
@@ -160,6 +169,7 @@ export default function ProjectsPage() {
       setEditingProjectId(null);
       setName(''); setDescription(''); setIcon('📁'); setColor('#6c5ce7');
       setBillingType('tm'); setContractValue(''); setScope('teamspace'); setProjectType('tm'); setDurationMonths('');
+      setMonthlyBudget(''); setOverallBudget('');
       fetchAll();
     } catch (err) { console.error(err); }
   };
@@ -263,11 +273,29 @@ export default function ProjectsPage() {
   if (activeProject) {
     return (
       <div className="tasks-page">
-        <ViewTabs 
-          views={projectTaskViews} 
-          activeViewId={activeProjectTaskViewId} 
-          onChangeView={setActiveProjectTaskViewId} 
-          onAddView={handleAddProjectTaskView} 
+        <PageIntro
+          compact
+          icon={activeProject.icon || '📁'}
+          title={`Inside ${activeProject.name}`}
+          actor="Project team"
+          purpose="Tasks in this project move left-to-right across the board. Drag a card or open it to change status, assignee, or due date."
+          storageKey={`project-detail-${activeProject._id}`}
+          youCanDo={[
+            'Add a new task (only if you have an allocation in this project)',
+            'Drag a task between columns to change its status',
+            'Click a task to open the full detail page with comments and files',
+          ]}
+          whatHappensNext={[
+            'Move to In Progress → assignee gets a notification, time can be logged against it',
+            'Move to In Review → owner is asked to approve or reject',
+            'Approved → status becomes Completed and the task is locked from edits',
+          ]}
+        />
+        <ViewTabs
+          views={projectTaskViews}
+          activeViewId={activeProjectTaskViewId}
+          onChangeView={setActiveProjectTaskViewId}
+          onAddView={handleAddProjectTaskView}
         />
         <div className="tasks-toolbar" style={{ paddingTop: 0 }}>
           <div className="tasks-toolbar-left">
@@ -398,6 +426,24 @@ export default function ProjectsPage() {
   // Project grid
   return (
     <div className="projects-page">
+      <PageIntro
+        icon="📁"
+        title="Projects"
+        actor="Admins & PMs"
+        purpose="Every piece of work in this teamspace lives under a project. Pick a project to see its tasks, or create a new one to start tracking work, time, and budgets."
+        storageKey="projects-list"
+        youCanDo={[
+          'Create a new project (T&M, Sprint, Services, or Maintenance)',
+          'Open a project to see its tasks, sprints, and team',
+          'Edit the icon, contract value, or scope of any project you own',
+          'Open Project P&L to see planned vs. actual cost and revenue',
+        ]}
+        whatHappensNext={[
+          'New project → only people allocated to it can log time or create tasks',
+          'Set the project type → it picks the right budget plan flow (monthly vs. one-shot)',
+          'Once tasks are added → assignees see them in their Tasks board and notifications',
+        ]}
+      />
       <div className="team-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <ViewTabs 
           views={views} 
@@ -606,7 +652,7 @@ export default function ProjectsPage() {
                       className={`btn btn-sm ${projectType === t.id ? 'btn-primary' : 'btn-ghost'}`}
                       style={{ flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', padding: '8px 10px', height: 'auto' }}>
                       <span style={{ fontWeight: 600 }}>{t.icon} {t.title}</span>
-                      <span style={{ fontSize: '0.72rem', opacity: 0.8, fontWeight: 400 }}>{t.desc}</span>
+                      <span style={{ fontSize: '0.75rem', opacity: 0.8, fontWeight: 400 }}>{t.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -655,7 +701,31 @@ export default function ProjectsPage() {
                   onChange={(e) => setContractValue(e.target.value)}
                   placeholder="e.g. 500000" />
                 <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
-                  Client-approved budget. Plans whose committed cost crosses this trigger an overrun warning.
+                  Client-approved budget (revenue side). Plans whose committed cost crosses this trigger an overrun warning.
+                </div>
+              </div>
+              <div className="form-field">
+                <label className="label">
+                  Internal cost budget — monthly (₹) <span className="muted" style={{ fontWeight: 400 }}>— optional</span>
+                </label>
+                <input className="input" type="number" min="0" step="1000"
+                  value={monthlyBudget}
+                  onChange={(e) => setMonthlyBudget(e.target.value)}
+                  placeholder="e.g. 100000" />
+                <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
+                  Soft cap finance applies to any single month's plans. P&L flags overruns in red.
+                </div>
+              </div>
+              <div className="form-field">
+                <label className="label">
+                  Internal cost budget — overall (₹) <span className="muted" style={{ fontWeight: 400 }}>— optional</span>
+                </label>
+                <input className="input" type="number" min="0" step="1000"
+                  value={overallBudget}
+                  onChange={(e) => setOverallBudget(e.target.value)}
+                  placeholder="e.g. 1000000" />
+                <div className="muted" style={{ fontSize: '0.7rem', marginTop: 4 }}>
+                  Hard cap finance applies to total spend across the whole project life. Drives plan-as-% calculations.
                 </div>
               </div>
               {/* Note: projects are now visible to every teamspace by default,

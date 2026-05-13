@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { uploadAvatar, updateUser, signedFileUrl } from '../api';
+import { PageIntro } from '../components/PageIntro';
 import './ProfilePage.css';
 
 // Common IANA timezones for the picker. The full list is hundreds; this covers
@@ -78,6 +79,24 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
+      <PageIntro
+        compact
+        icon="🙋"
+        title="My Profile"
+        actor="You"
+        purpose="Update your name, avatar, email, and password. Changes here apply across every teamspace you belong to."
+        storageKey="profile"
+        youCanDo={[
+          'Upload or change your avatar (click the picture)',
+          'Update your display name — visible to teammates everywhere',
+          'Change your password',
+        ]}
+        whatHappensNext={[
+          'Profile changes are saved instantly — no submit needed',
+          'New avatar shows up in comments, assignee chips, and the sidebar within a few seconds',
+          'Password change → all other active sessions are logged out',
+        ]}
+      />
       <div className="profile-card animate-in">
         <div className="profile-header-section">
           <div className="profile-avatar-lg" onClick={() => fileRef.current?.click()} style={{ cursor: 'pointer', position: 'relative' }}>
@@ -209,7 +228,7 @@ export default function ProfilePage() {
             <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
               ✉️ Email notifications: {extra.emailNotificationsEnabled ? 'ON' : 'OFF'}
             </span>
-            <div className="muted" style={{ fontSize: '0.74rem', marginTop: 2 }}>
+            <div className="muted" style={{ fontSize: '0.75rem', marginTop: 2 }}>
               Master switch. When OFF, no notification emails are sent to {extra.email || 'your inbox'} — but the in-app bell and browser push still work, so you won't miss anything.
             </div>
           </span>

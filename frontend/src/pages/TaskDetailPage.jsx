@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTeamspace } from '../context/TeamspaceContext';
 import { useToast } from '../context/ToastContext';
 import TaskComments from '../components/TaskComments';
+import { PageIntro, NextStepHint } from '../components/PageIntro';
 import './TaskDetailPage.css';
 
 // ─── Inline Office preview components ────────────────────────────────
@@ -380,6 +381,26 @@ export default function TaskDetailPage({ task, onBack, onUpdated }) {
         </div>
       </div>
 
+      <PageIntro
+        compact
+        icon="📝"
+        title={task?.id ? 'Task details' : 'New task'}
+        actor={canApproveReject ? 'Teamspace Owner' : isAssignee ? 'Assignee' : 'Viewer'}
+        purpose="Everything about a single task lives here: description, files, comments, time, and the approval workflow. Changes auto-save as you type."
+        storageKey="task-detail"
+        youCanDo={[
+          'Edit the title, description blocks, due date, priority, and assignee',
+          'Attach files (drag-and-drop anywhere on the page works)',
+          'Move the status forward when you\'re ready for review',
+          'Discuss with teammates in the comments thread on the right',
+        ]}
+        whatHappensNext={[
+          'Set status to In Review → the teamspace owner is asked to approve or reject',
+          'Owner approves → task is locked, marked Completed, assignee notified',
+          'Owner rejects → status flips to Rejected, assignee sees a rework banner',
+        ]}
+      />
+
       {/* Review/Approval Banner — Approve / Reject buttons render only for
           the teamspace OWNER (or Super Admin in elevated mode). Regular
           global Admins who happen to be members of this workspace don't see
@@ -392,6 +413,9 @@ export default function TaskDetailPage({ task, onBack, onUpdated }) {
           <div className="td-banner-text">
             <div className="td-banner-title">Awaiting your review</div>
             <div className="td-banner-sub">{assignee || 'A teammate'} submitted this task. Approve to mark it complete, or reject to send it back.</div>
+            <NextStepHint block>
+              <strong>Approve</strong> → status becomes Completed, task locks, {assignee || 'assignee'} is notified. <strong>Reject</strong> → status flips to Rejected, {assignee || 'assignee'} sees a rework banner.
+            </NextStepHint>
           </div>
           <div className="td-banner-actions">
             <button className="btn btn-sm td-action-reject" onClick={handleReject}>
