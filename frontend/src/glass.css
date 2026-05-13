@@ -1,0 +1,66 @@
+/* ════════════════════════════════════════════════════════════
+   MAYVEL — Glass utility (iOS-style frosted glass).
+   Apply .glass to any element for a frosted-glass surface.
+   Drop additional variant classes for nav / card / modal.
+
+   Author: Thagha · Reviewer: Karthick
+   ════════════════════════════════════════════════════════════ */
+
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  /* -webkit- prefix REQUIRED for Safari 9–15 */
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+          backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+  border-radius: var(--radius-lg);
+}
+
+/* ── Intensity variants — override the blur token locally ── */
+.glass-strong { --glass-blur: 32px; }
+.glass-subtle { --glass-blur: 10px; --glass-bg: rgba(20, 20, 20, 0.30); }
+[data-theme="light"] .glass-subtle { --glass-bg: rgba(255, 255, 255, 0.40); }
+
+/* ── Use-case variants ── */
+.glass-nav {
+  --glass-blur: 28px;
+  --glass-bg:   rgba(12, 12, 12, 0.70);
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+[data-theme="light"] .glass-nav { --glass-bg: rgba(255, 255, 255, 0.78); }
+
+.glass-card {
+  padding: 20px;
+  border-radius: var(--radius-md);
+}
+
+.glass-modal {
+  --glass-blur: 36px;
+  --glass-bg:   rgba(20, 20, 20, 0.78);
+  border-radius: var(--radius-lg);
+}
+[data-theme="light"] .glass-modal { --glass-bg: rgba(255, 255, 255, 0.88); }
+
+/* ── iOS keyboard-stutter mitigation — when a glass surface wraps
+      an input that's focused, the blur recompute-per-frame on iOS
+      causes jank. Swap to a solid background while focused. ── */
+.glass:focus-within {
+  -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+  background: var(--color-bg-elevated);
+}
+
+/* ── @supports fallback — pre-2020 browsers + older Android.
+      Drop the blur, use a denser solid tint so the surface still reads. ── */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-strong,
+  .glass-subtle,
+  .glass-nav,
+  .glass-card,
+  .glass-modal {
+    background: var(--color-bg-elevated);
+  }
+}

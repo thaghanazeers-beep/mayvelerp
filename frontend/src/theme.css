@@ -1,0 +1,119 @@
+/* ════════════════════════════════════════════════════════════
+   MAYVEL — Theme tokens. Single source of truth for colour,
+   typography, and glass surfaces. One change here propagates
+   to every component that uses the tokens.
+
+   Author: Thagha · Reviewer: Karthick
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ───── PRIMARY COLOUR — swap THIS line to rebrand the app ───── */
+  --color-primary:       #b8ff03;
+  --color-primary-hover: color-mix(in oklab, var(--color-primary) 85%, #fff);
+  --color-primary-dark:  color-mix(in oklab, var(--color-primary) 70%, #000);
+  --color-primary-text:  #050505;
+  --color-primary-glow:  color-mix(in oklab, var(--color-primary) 35%, transparent);
+
+  /* ───── SEMANTIC PALETTE ───── */
+  --color-success: #03ff78;
+  --color-warning: #ffaa00;
+  --color-danger:  #ff330f;
+  --color-info:    #0080ff;
+
+  /* ───── SURFACES (dark default) ───── */
+  --color-bg-app:      #050505;
+  --color-bg-surface:  #0c0c0c;
+  --color-bg-elevated: #1b1b1b;
+  --color-bg-hover:    rgba(255, 255, 255, 0.05);
+
+  /* ───── TEXT (each value ≥ 4.5:1 on its expected surface — WCAG AA) ───── */
+  --color-text-strong:    #f5f5f5;
+  --color-text-default:   #e4e4e7;
+  --color-text-secondary: #b4b4b8;
+  --color-text-muted:     #8a8a90;
+  --color-text-accent:    var(--color-primary);
+
+  /* ───── BORDERS ───── */
+  --color-border:        rgba(240, 246, 252, 0.06);
+  --color-border-strong: rgba(240, 246, 252, 0.16);
+
+  /* ───── FONT — swap the Google Fonts <link> in index.html AND this var ───── */
+  --font-family:         'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-family-display: 'Instrument Sans', var(--font-family);
+  --font-family-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ───── TYPE SCALE (rem on 16px root) ───── */
+  --text-xs:   0.75rem;  /* 12px — floor, captions only */
+  --text-sm:   0.875rem; /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg:   1.125rem; /* 18px */
+  --text-xl:   1.25rem;  /* 20px */
+  --text-2xl:  1.5rem;   /* 24px */
+  --text-3xl:  1.875rem; /* 30px */
+  --text-4xl:  2.25rem;  /* 36px */
+
+  --leading-tight:   1.2;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semi:    600;
+  --weight-bold:    700;
+
+  /* ───── GLASS TOKENS — consumed by glass.css ───── */
+  --glass-blur:       20px;
+  --glass-saturation: 180%;
+  --glass-bg:         rgba(20, 20, 20, 0.55);
+  --glass-border:     rgba(255, 255, 255, 0.08);
+  --glass-shadow:     0 8px 32px rgba(0, 0, 0, 0.45),
+                      0 1px 0 rgba(255, 255, 255, 0.04) inset;
+
+  /* ───── RADII (kept from existing system) ───── */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-full: 9999px;
+
+  /* ───── BACKWARD-COMPAT ALIASES (so existing CSS keeps working) ───── */
+  --primary:          var(--color-primary);
+  --primary-light:    var(--color-primary-hover);
+  --primary-dark:     var(--color-primary-dark);
+  --primary-contrast: var(--color-primary-text);
+  --primary-glow:     var(--color-primary-glow);
+  --text-accent:      var(--color-text-accent);
+  --text:             var(--color-text-default);
+  --text-strong:      var(--color-text-strong);
+  --text-default:     var(--color-text-default);
+  --text-secondary:   var(--color-text-secondary);
+  --text-muted:       var(--color-text-muted);
+  --bg-app:           var(--color-bg-app);
+  --bg-surface:       var(--color-bg-surface);
+  --bg-elevated:      var(--color-bg-elevated);
+  --bg-hover:         var(--color-bg-hover);
+  --border:           var(--color-border);
+  --border-strong:    var(--color-border-strong);
+}
+
+/* ───── LIGHT THEME OVERRIDES — same tokens, different values ───── */
+[data-theme="light"] {
+  --color-bg-app:      #f7f7f8;
+  --color-bg-surface:  #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover:    rgba(0, 0, 0, 0.04);
+
+  --color-text-strong:    #0a0a0a;
+  --color-text-default:   #1f2937;
+  --color-text-secondary: #374151;
+  --color-text-muted:     #5b6371;
+  --color-text-accent:    #3d6900;
+
+  --color-border:        rgba(0, 0, 0, 0.06);
+  --color-border-strong: rgba(0, 0, 0, 0.14);
+
+  /* Glass: white tint over content instead of dark */
+  --glass-bg:     rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
+                  0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
