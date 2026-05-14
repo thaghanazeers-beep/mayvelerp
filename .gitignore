@@ -81,3 +81,8 @@ Thumbs.db
 # Local Atlas dumps (timestamped)
 db_backup_*/
 db_backup_*.tar.gz
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
