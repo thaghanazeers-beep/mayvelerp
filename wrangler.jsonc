@@ -11,6 +11,11 @@
   "observability": {
     "enabled": true
   },
+  // Build the Vite SPA before wrangler uploads. Runs in Cloudflare's CI
+  // (and locally) so we don't depend on the dashboard "Build command" field.
+  "build": {
+    "command": "cd frontend && npm install --no-audit --no-fund && npm run build"
+  },
   "assets": {
     "directory": "./frontend/dist",
     "not_found_handling": "single-page-application"
