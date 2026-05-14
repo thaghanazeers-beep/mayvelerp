@@ -131,16 +131,16 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <ThemeProvider>
           <TeamspaceProvider>
             <OrgProvider>
               <AppContent />
             </OrgProvider>
           </TeamspaceProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </ThemeProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

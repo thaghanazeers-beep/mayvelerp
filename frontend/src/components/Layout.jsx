@@ -513,16 +513,16 @@ export default function Layout({ children, onToast }) {
                 Original SuperAdmin info comes from sessionStorage (set when the
                 impersonate call returns). */}
             {impersonating && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '6px 12px', background: '#fdcb6e', color: '#222',
-                borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
-              }}>
-                <span>👁️ Viewing as {user?.name}</span>
+              <div className="impersonation-banner" title={`You are viewing the app as ${user?.name}`}>
+                <span className="impersonation-banner-text">
+                  <span className="impersonation-banner-dot" aria-hidden="true" />
+                  Viewing as <strong>{user?.name}</strong>
+                </span>
                 <button
+                  type="button"
                   onClick={handleRevert}
-                  style={{ background: '#222', color: '#fdcb6e', border: 'none', padding: '4px 10px', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}
-                >Switch back to {impersonating.name}</button>
+                  className="impersonation-revert-btn"
+                >Switch back</button>
               </div>
             )}
 

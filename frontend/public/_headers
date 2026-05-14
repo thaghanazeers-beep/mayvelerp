@@ -1,0 +1,11 @@
+# Long-cache fingerprinted Vite assets (filenames include a hash).
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Don't cache index.html so users always get the latest build.
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Service worker — never cache.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate

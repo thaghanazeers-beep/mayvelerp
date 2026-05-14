@@ -1,8 +1,20 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { uploadAvatar, updateUser, signedFileUrl } from '../api';
 import { PageIntro } from '../components/PageIntro';
 import './ProfilePage.css';
+
+// Preset accent swatches users can pick with one click. The "Custom" picker
+// still allows any hex; these just save people from fiddling with a colour wheel.
+const ACCENT_PRESETS = [
+  { name: 'Mayvel lime', hex: '#b8ff03' },
+  { name: 'Electric blue', hex: '#3d8bff' },
+  { name: 'Royal purple', hex: '#7c5cff' },
+  { name: 'Coral',         hex: '#ff5c7a' },
+  { name: 'Tangerine',     hex: '#ff9f1c' },
+  { name: 'Teal',          hex: '#1abc9c' },
+];
 
 // Common IANA timezones for the picker. The full list is hundreds; this covers
 // the regions we actually have employees in. Users can also paste any IANA name.
@@ -15,6 +27,7 @@ const COMMON_TIMEZONES = [
 
 export default function ProfilePage() {
   const { user, loginUser, logout } = useAuth();
+  const { theme, toggleTheme, primaryColor, setPrimaryColor, resetPrimaryColor, defaultPrimary } = useTheme();
   const [uploading, setUploading] = useState(false);
   const [editName, setEditName] = useState(false);
   const [name, setName] = useState(user?.name || '');
@@ -207,6 +220,59 @@ export default function ProfilePage() {
             <textarea className="input" rows={2} value={extra.bio} onChange={e => setExtraField('bio', e.target.value)} placeholder="Short description / current focus" />
           </div>
         </div>
+        <h3 style={{ marginTop: 28, marginBottom: 12, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text)' }}>🎨 Appearance</h3>
+        <p className="muted" style={{ fontSize: '0.78rem', margin: '0 0 12px' }}>
+          Pick the accent colour used for buttons, links, and highlights across the site. Saved in this browser only — it's a personal preference, not a teamspace setting.
+        </p>
+        <div className="profile-details">
+          <div className="profile-field">
+            <label className="label">Theme</label>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={toggleTheme} style={{ width: 'fit-content' }}>
+              {theme === 'dark' ? '☀️ Switch to light mode' : '🌙 Switch to dark mode'}
+            </button>
+          </div>
+          <div className="profile-field">
+            <label className="label">Accent colour</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {ACCENT_PRESETS.map(p => {
+                const active = (primaryColor || defaultPrimary).toLowerCase() === p.hex.toLowerCase();
+                return (
+                  <button
+                    key={p.hex}
+                    type="button"
+                    title={p.name}
+                    onClick={() => setPrimaryColor(p.hex)}
+                    style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: p.hex,
+                      border: active ? '2px solid var(--text)' : '2px solid var(--border)',
+                      boxShadow: active ? '0 0 0 3px ' + p.hex + '33' : 'none',
+                      cursor: 'pointer', padding: 0,
+                    }}
+                  />
+                );
+              })}
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Custom
+                <input
+                  type="color"
+                  value={primaryColor || defaultPrimary}
+                  onChange={e => setPrimaryColor(e.target.value)}
+                  style={{ width: 32, height: 28, padding: 0, border: '1px solid var(--border)', borderRadius: 6, background: 'transparent', cursor: 'pointer' }}
+                />
+              </label>
+              {primaryColor && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={resetPrimaryColor}>
+                  Reset to default
+                </button>
+              )}
+            </div>
+            <div className="muted" style={{ fontSize: '0.7rem', marginTop: 6 }}>
+              Currently: <code>{primaryColor || defaultPrimary}</code>{!primaryColor && ' (default)'}
+            </div>
+          </div>
+        </div>
+
         <h3 style={{ marginTop: 28, marginBottom: 12, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text)' }}>🔔 Notification preferences</h3>
 
         {/* Master email kill switch. In-app + push notifications are

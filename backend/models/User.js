@@ -34,6 +34,12 @@ const userSchema = new mongoose.Schema({
   // don't miss anything; just no inbox spam). Per-type prefs above are AND-ed
   // with this — easiest way to "go quiet" without flipping every type.
   emailNotificationsEnabled: { type: Boolean, default: true },
+
+  // Appearance preferences — server-backed so the choice follows the user
+  // across browsers/devices, not pinned to one localStorage. ThemeContext
+  // hydrates from these on login and PUTs back on change.
+  themeMode:   { type: String, enum: ['dark', 'light'], default: 'dark' },
+  accentColor: { type: String, default: '' },  // hex like '#b8ff03'; empty = brand default from theme.css
 });
 
 module.exports = mongoose.model('User', userSchema);
