@@ -45,6 +45,7 @@ export default function Layout({ children, onToast }) {
   else if (path === '/help')                      activePage = 'help';
   else if (path === '/access')                    activePage = 'access';
   else if (path === '/approvals')                 activePage = 'approvals';
+  else if (path === '/notifications')             activePage = 'notifications';
 
   const onNavigate = (page) => {
     const tsId = urlTeamspaceId; // when on /t/:tsId/*
@@ -271,6 +272,12 @@ export default function Layout({ children, onToast }) {
     dashboard: 'Dashboard', tasks: 'Tasks', projects: 'Projects', sprints: 'Sprints',
     workflows: 'Workflows', team: 'Team', organization: 'Organization',
     'team-settings': 'Team', 'teamspace-control': 'Teamspace Control', profile: 'Profile',
+    // Routes that previously fell through to a blank or wrong ("Dashboard")
+    // header title. Labels mirror the sidebar nav.
+    notifications: 'Notifications', ai: 'AI Assistant', help: 'Help & Guide',
+    access: 'Access control', approvals: 'Approvals (all)', 'org-members': 'Members',
+    'time-mine': 'My Timesheet', 'time-plans': 'Time · Plans',
+    'time-approvals': 'Time · Plan Approvals', 'time-week-approvals': 'Time · Week Approvals',
   };
 
   return (
