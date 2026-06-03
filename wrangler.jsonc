@@ -13,8 +13,11 @@
   },
   // Build the Vite SPA before wrangler uploads. Runs in Cloudflare's CI
   // (and locally) so we don't depend on the dashboard "Build command" field.
+  // VITE_API_URL is injected here (not via frontend/.env, which is gitignored
+  // and absent in Cloudflare CI) so the built bundle talks to the live Render
+  // backend instead of falling back to api.js's localhost default.
   "build": {
-    "command": "cd frontend && npm install --no-audit --no-fund && npm run build"
+    "command": "cd frontend && npm install --no-audit --no-fund && VITE_API_URL=https://mayvelerp.onrender.com npm run build"
   },
   "assets": {
     "directory": "./frontend/dist",
