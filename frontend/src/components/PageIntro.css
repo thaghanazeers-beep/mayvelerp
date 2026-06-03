@@ -157,7 +157,10 @@
 [data-theme="light"] .page-intro-actor-tag {
   background: #0a0a0a;
   border-color: #0a0a0a;
-  color: var(--text-accent);
+  /* Force the bright lime, not light-theme's dark-green --text-accent.
+     Dark-green-on-near-black fails WCAG; bright lime on black is on-brand
+     and clears 14:1. */
+  color: var(--color-primary);
 }
 [data-theme="light"] .page-intro-toggle {
   background: #ffffff;
